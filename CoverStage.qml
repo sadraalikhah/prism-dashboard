@@ -10,6 +10,9 @@ Item {
   property url coverUrl: ""
   property bool hasTrack: false
   property bool playing: false
+  property bool dynamicColors: true
+  property bool showDots: true
+  property bool showWaves: true
   property real audioEnergy: 0
   property real bassLevel: 0
   property real flowHover: 0
@@ -31,7 +34,8 @@ Item {
 
   function animationStatus() {
     return { playing: playing, phase: aurora.phase, bass: bassLevel,
-      input: audioEnergy, effectVisible: aurora.visible, hover: flowHover }
+      input: audioEnergy, effectVisible: aurora.visible, hover: flowHover,
+      dynamicColors: dynamicColors, dots: showDots, waves: showWaves }
   }
 
   HoverHandler {
@@ -79,7 +83,7 @@ Item {
 
   readonly property var fallbackPalette: Palette.themePalette(themeTokens())
   property var localPalette: fallbackPalette
-  readonly property var palette: paletteSource ? paletteSource.palette : localPalette
+  readonly property var palette: dynamicColors ? (paletteSource ? paletteSource.palette : localPalette) : fallbackPalette
 
   readonly property color accent: colorOf(palette.accent)
   readonly property color metadataInk: colorOf(palette.text)
@@ -197,7 +201,7 @@ Item {
     Canvas {
       id: ambientCanvas
       anchors.fill: parent
-      visible: root.playing && root.hasTrack
+      visible: root.playing && root.hasTrack && (root.showDots || root.showWaves)
       onWidthChanged: requestPaint()
       onHeightChanged: requestPaint()
       onPaint: {
@@ -315,6 +319,8 @@ Item {
     property real waveSeed: Math.random() * 4096
     property real bassEnergy: root.bassLevel
     property real flowHoverStrength: root.flowHover
+    property real dotsEnabled: root.showDots ? 1 : 0
+    property real wavesEnabled: root.showWaves ? 1 : 0
     property real aspect: width / Math.max(1, height)
     property size cardSize: Qt.size(width, height)
     property real cardRadius: root.radius
@@ -326,11 +332,11 @@ Item {
     property color primaryColor: root.colorOf(root.palette.primary)
     property color secondaryColor: root.colorOf(root.palette.secondary)
     property color lightColor: root.colorOf(root.palette.light)
-    visible: root.playing && root.hasTrack
+    visible: root.playing && root.hasTrack && (root.showDots || root.showWaves)
   }
 
   FrameAnimation {
-    running: root.playing && root.hasTrack && root.visible
+    running: root.playing && root.hasTrack && root.visible && (root.showDots || root.showWaves)
     onTriggered: {
       aurora.phase += frameTime
       root.advanceBubble(frameTime)

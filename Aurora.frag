@@ -11,6 +11,8 @@ layout(std140, binding = 0) uniform buf {
     float waveSeed;
     float bassEnergy;
     float flowHoverStrength;
+    float dotsEnabled;
+    float wavesEnabled;
     vec2 hoverPosition;
     vec2 hoverVelocity;
     vec2 trailPosition;
@@ -108,16 +110,16 @@ void main() {
     float dotDistance = length(circularCell);
     float core = 1.0 - smoothstep(dotSize * 0.5, dotSize, dotDistance);
     float halo = 1.0 - smoothstep(dotSize, dotSize + 0.035, dotDistance);
-    float dots = (core * 0.95 + halo * 0.09) * mix(0.65, 1.0, dotSeed) * dotVisibility;
+    float dots = (core * 0.95 + halo * 0.09) * mix(0.65, 1.0, dotSeed) * dotVisibility * dotsEnabled;
     float sweepY = uv.y - (0.47 + 0.16 * sin(uv.x * 8.0 - t * 0.12));
     float sweep = exp(-65.0 * sweepY * sweepY);
 
     vec3 color = mix(primaryColor.rgb, secondaryColor.rgb, 0.5 + 0.5 * sin(t * 0.35 + uv.y * 6.0));
     vec3 highlight = mix(lightColor.rgb, vec3(1.0), 0.25);
-    color = mix(color, highlight, min(0.65, ribbon * 0.48 + ribbonB * 0.38));
+    color = mix(color, highlight, min(0.65, ribbon * 0.48 + ribbonB * 0.38) * wavesEnabled);
     color = mix(color, highlight, min(0.70, dots * 0.65));
     float motion = clamp(0.07 + bloomA * 0.18 + bloomB * 0.16
-                         + ribbon * 0.12 + ribbonB * 0.09, 0.0, 0.48);
+                         + ribbon * 0.12 + ribbonB * 0.09, 0.0, 0.48) * wavesEnabled;
     float dotPulse = mix(0.52 + bass * 0.12, 0.60, hoverAura);
     float alpha = min(0.76, motion + dots * (dotPulse + sweep * 0.06));
     float radius = min(cardRadius, min(cardSize.x, cardSize.y) * 0.5);

@@ -4,6 +4,7 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 import "Model.js" as Model
+import "Preferences.js" as Prefs
 
 BarWidget {
   id: root
@@ -49,6 +50,18 @@ BarWidget {
       root.bar.shell.updateEntryInline(root.moduleName, entry)
   }
 
+  function applyPreferences(entry, persist) {
+    entry.id = root.moduleName
+    root.settings = entry
+    if (persist && root.bar && root.bar.shell)
+      root.bar.shell.updateEntryInline(root.moduleName, entry)
+  }
+  function setPreference(key, value) {
+    var entry = Prefs.updated(root.settings, key, value)
+    if (entry) applyPreferences(entry, true)
+  }
+  function resetVisualSettings() { applyPreferences(Prefs.resetVisual(root.settings), true) }
+
   function injectPanel() {
     var target = panelLoader.item
     if (!target) return
@@ -90,6 +103,8 @@ BarWidget {
     function refreshWeather(): void { if (panelLoader.item) panelLoader.item.refreshWeather() }
     function musicStatus(): string { return panelLoader.item ? panelLoader.item.musicStatus() : "{}" }
     function animationStatus(): string { return panelLoader.item ? panelLoader.item.animationStatus() : "{}" }
+    function openSettings(): void { root.open(); if (panelLoader.item) panelLoader.item.editSettings() }
+    function settingsStatus(): string { return JSON.stringify(root.settings) }
     function spectrumStatus(): string {
       var state = JSON.parse(spectrum.status())
       state.accent = String(spectrum.accent)
@@ -111,6 +126,7 @@ BarWidget {
         height: 32
         coverUrl: panelLoader.item ? panelLoader.item.coverArt : ""
         hasTrack: !!panelLoader.item && !!panelLoader.item.player
+        dynamicColors: Prefs.value(root.settings, "dynamicCoverColors")
         playing: false
       }
     }
@@ -121,8 +137,8 @@ BarWidget {
     anchors.fill: parent
     anchors.leftMargin: 3
     anchors.rightMargin: 3
-    showBars: root.setting("clockSpectrum", true)
-    active: (showBars || root.opened) && root.visible && !!panelLoader.item
+    showBars: Prefs.value(root.settings, "clockSpectrum")
+    active: (showBars || (root.opened && Prefs.value(root.settings, "displayDots"))) && root.visible && !!panelLoader.item
       && !!panelLoader.item.player && panelLoader.item.player.isPlaying
     accent: clockPalette.item ? clockPalette.item.accent : Color.accent
     ink: button.foreground

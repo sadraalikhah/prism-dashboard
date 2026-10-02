@@ -4,6 +4,7 @@ import Quickshell.Services.Mpris
 import qs.Commons
 import qs.Ui
 import "Model.js" as Model
+import "Preferences.js" as Prefs
 
 Panel {
   id: root
@@ -20,8 +21,23 @@ Panel {
   property real sampledPosition: 0
   property string selectedPlayerKey: ""
   property bool editingWeatherLocation: false
+  property bool editingSettings: false
+  function editSettings() { editingWeatherLocation = false; weather.cancelSearch(); editingSettings = true }
+  function closeSettings() { editingSettings = false; keyCatcher.forceActiveFocus() }
+  function preference(key, value) {
+    if (hostWidget) hostWidget.setPreference(key, value)
+    else {
+      var entry = Prefs.updated(settings, key, value)
+      if (entry) settings = entry
+    }
+  }
+  function resetVisualSettings() {
+    if (hostWidget) hostWidget.resetVisualSettings()
+    else settings = Prefs.resetVisual(settings)
+  }
 
   function editWeatherLocation() {
+    editingSettings = false
     editingWeatherLocation = true
     weatherLocation.start()
   }
@@ -56,7 +72,7 @@ Panel {
     id: weather
     objectName: "dashboardWeatherService"
     active: root.opened
-    unit: root.setting("weatherUnit", "celsius") === "fahrenheit" ? "fahrenheit" : "celsius"
+    unit: Prefs.value(root.settings, "weatherUnit")
     onLocationSaved: root.closeWeatherLocation()
   }
 
@@ -192,7 +208,7 @@ Panel {
     coverStage.wake()
   }
 
-  function close() { root.closeWeatherLocation(); controller.hide() }
+  function close() { root.editingSettings = false; root.closeWeatherLocation(); controller.hide() }
   function toggle() { opened ? close() : open() }
 
   function switchPanel(direction) {
@@ -352,7 +368,7 @@ Panel {
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
-      blocked: root.editingWeatherLocation || sourceDropdown.popupOpen
+      blocked: root.editingSettings || root.editingWeatherLocation || sourceDropdown.popupOpen
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
 
@@ -379,7 +395,7 @@ Panel {
 
                 Column {
                   id: calendarContent
-                  visible: !root.editingWeatherLocation
+                  visible: !root.editingWeatherLocation && !root.editingSettings
                   anchors.fill: parent
                   anchors.margins: parent.contentLeftInset
                   spacing: Style.space(7)
@@ -405,6 +421,16 @@ Panel {
                       id: monthNavigation
                       anchors.verticalCenter: parent.verticalCenter
                       spacing: Style.space(2)
+                      PanelActionButton {
+                        objectName: "dashboardSettingsButton"
+                        size: Style.space(28)
+                        iconText: "󰒓"
+                        foreground: root.foreground
+                        fontFamily: root.fontFamily
+                        focusable: true
+                        tooltipText: "Dashboard settings"
+                        onClicked: root.editSettings()
+                      }
                       PanelActionButton {
                         size: Style.space(28)
                         iconText: "󰅁"
@@ -485,6 +511,19 @@ Panel {
                   fontFamily: root.fontFamily
                   onDismissed: root.closeWeatherLocation()
                 }
+                DashboardSettings {
+                  anchors.fill: parent
+                  anchors.margins: calendarCard.contentLeftInset
+                  visible: root.editingSettings
+                  settings: root.settings
+                  bar: root.bar
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onSaved: function(key, value) { root.preference(key, value) }
+                  onResetRequested: root.resetVisualSettings()
+                  onLocationRequested: root.editWeatherLocation()
+                  onDismissed: root.closeSettings()
+                }
               }
 
               BorderSurface {
@@ -501,6 +540,9 @@ Panel {
                   id: coverStage
                   paletteSource: root.paletteSource
                   audioEnergy: root.hostWidget ? root.hostWidget.bassEnergy : 0
+                  dynamicColors: Prefs.value(root.settings, "dynamicCoverColors")
+                  showDots: Prefs.value(root.settings, "displayDots")
+                  showWaves: Prefs.value(root.settings, "displayWaves")
                   anchors.fill: parent
                   anchors.topMargin: playerCard.borderTop
                   anchors.bottomMargin: playerCard.borderBottom

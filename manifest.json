@@ -22,7 +22,10 @@
       "format": "dddd HH:mm",
       "verticalFormat": "HH\n\u2014\nmm",
       "weatherUnit": "celsius",
-      "clockSpectrum": true
+      "clockSpectrum": true,
+      "dynamicCoverColors": true,
+      "displayDots": true,
+      "displayWaves": true
     },
     "schema": [
       {
@@ -50,6 +53,24 @@
           "fahrenheit"
         ],
         "defaultValue": "celsius"
+      },
+      {
+        "key": "dynamicCoverColors",
+        "label": "Dynamic music cover colors",
+        "type": "boolean",
+        "defaultValue": true
+      },
+      {
+        "key": "displayDots",
+        "label": "Display dots animation",
+        "type": "boolean",
+        "defaultValue": true
+      },
+      {
+        "key": "displayWaves",
+        "label": "Display waves animation",
+        "type": "boolean",
+        "defaultValue": true
       }
     ]
   }
