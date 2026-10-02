@@ -62,6 +62,7 @@ BarWidget {
     function toggle(): void { root.togglePanel() }
     function editWeather(): void { root.open(); if (panelLoader.item) panelLoader.item.editWeatherLocation() }
     function refreshWeather(): void { if (panelLoader.item) panelLoader.item.refreshWeather() }
+    function musicStatus(): string { return panelLoader.item ? panelLoader.item.musicStatus() : "{}" }
     function weatherStatus(): string { return panelLoader.item ? panelLoader.item.weatherStatus() : "{}" }
   }
 

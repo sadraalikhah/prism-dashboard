@@ -42,6 +42,14 @@ Panel {
       matches: weather.suggestions.length })
   }
 
+  function musicStatus() {
+    return JSON.stringify({ source: playerKey(player), title: player ? player.trackTitle : "",
+      playing: !!player && player.isPlaying, sources: sourceOptions,
+      position: trackPosition, length: trackLength, seekAvailable: seekAvailable,
+      volume: appVolume, cover: String(coverArt), hasCover: coverStage.hasCover,
+      paletteKey: coverStage.sampledKey, samplerAvailable: coverStage.samplerAvailable, coverVisible: coverStage.visible, accent: String(playerAccent) })
+  }
+
   WeatherService {
     id: weather
     objectName: "dashboardWeatherService"
@@ -61,16 +69,16 @@ Panel {
       if (candidate && String(candidate.dbusName || "").toLowerCase().indexOf("playerctld") === -1)
         direct.push(candidate)
     }
-    // Per-tab MPRIS bridges (browser-mpris2) expose every media tab as its own
-    // player. When those are active, the browsers' own merged players — zen/
-    // firefox native and the plasma bridge — only duplicate one of those tabs,
-    // so hide them.
-    var hasPerTab = direct.some(function(p) {
+    // Hide an aggregate browser source only when a per-tab source reports
+    // the same media URL; other browsers may be playing independent tracks.
+    var tabs = direct.filter(function(p) {
       return /^org\.mpris\.MediaPlayer2\.chrome(\.tab\d+)?$/.test(String(p.dbusName || ""))
     })
-    if (hasPerTab) {
+    if (tabs.length) {
       direct = direct.filter(function(p) {
-        return !/^org\.mpris\.MediaPlayer2\.(firefox|plasma-browser-integration)/.test(String(p.dbusName || ""))
+        if (!/^org\.mpris\.MediaPlayer2\.(firefox|plasma-browser-integration)/.test(String(p.dbusName || ""))) return true
+        var url = String((p.metadata || {})["xesam:url"] || "")
+        return !url || !tabs.some(function(tab) { return String((tab.metadata || {})["xesam:url"] || "") === url })
       })
     }
     return direct.length > 0 ? direct : players
@@ -127,16 +135,18 @@ Panel {
     return options
   }
   readonly property real appVolume: player && player.volumeSupported ? player.volume : 0
-  readonly property string trackIdentity: playerKey(player) + "|"
-    + (player ? String(player.trackTitle || "") + "|" + String(player.trackArtist || "")
-      + "|" + String(player.trackAlbum || "") + "|" + String(player.trackArtUrl || "") : "")
+  readonly property string trackIdentity: playerKey(player) + "|" + (player
+    ? String(player.uniqueId || (player.metadata || {})["mpris:trackid"]
+      || (String(player.trackTitle || "") + "|" + String(player.trackArtist || "") + "|" + String((player.metadata || {})["xesam:url"] || "")))
+    : "")
   // Length is latched below: browser MPRIS (Zen/Firefox) briefly reports zero
   // length mid-seek, which used to disable the slider mid-drag and corrupt its
   // range. A stale value is only replaced by a positive one.
   property real cachedLength: 0
   readonly property real trackLength: player && player.lengthSupported && player.length > 0 ? player.length : cachedLength
-  readonly property bool seekAvailable: player && player.canSeek && player.positionSupported && trackLength > 0
-  readonly property real trackPosition: seekAvailable ? Math.max(0, Math.min(sampledPosition, trackLength)) : 0
+  readonly property bool hasPosition: player && player.positionSupported && trackLength > 0
+  readonly property bool seekAvailable: hasPosition && player.canSeek
+  readonly property real trackPosition: hasPosition ? Math.max(0, Math.min(sampledPosition, trackLength)) : 0
   readonly property var calendarCells: Model.monthCells(viewYear, viewMonth, today)
   readonly property url coverArt: {
     var activePlayer = root.player
@@ -166,6 +176,8 @@ Panel {
       ? root.player.length : 0
     root.sampledPosition = root.player && root.player.positionSupported ? root.player.position : 0
     seekSettle.stop()
+    overviewSeekSlider.dragging = false
+    overviewSeekSlider.liveValue = root.sampledPosition
   }
 
   function open() {
@@ -239,13 +251,14 @@ Panel {
     var target = Math.max(0, Math.min(Number(value), trackLength))
     if (!isFinite(target)) return
     sampledPosition = target
-    player.position = target
     seekSettle.restart()
+    player.position = target
   }
 
   function setAppVolume(value) {
     if (!player || !player.volumeSupported) return
-    player.volume = Math.max(0, Math.min(1, Number(value)))
+    var next = Number(value)
+    if (isFinite(next)) player.volume = Math.max(0, Math.min(1, next))
   }
 
   function formatDuration(seconds) {
@@ -276,7 +289,7 @@ Panel {
 
   Timer {
     id: seekSettle
-    interval: 700
+    interval: 300
     onTriggered: {
       if (root.player && root.player.positionSupported)
         root.sampledPosition = root.player.position
@@ -284,8 +297,8 @@ Panel {
   }
 
   Timer {
-    interval: 500
-    running: root.opened && root.player && root.player.positionSupported
+    interval: 100
+    running: root.opened && root.player && root.player.isPlaying && root.player.positionSupported
     repeat: true
     triggeredOnStart: true
     onTriggered: {
@@ -293,6 +306,24 @@ Panel {
         root.cachedLength = root.player.length
       if (!overviewSeekSlider.dragging && !seekSettle.running && root.player)
         root.sampledPosition = root.player.position
+    }
+  }
+
+  Connections {
+    target: root.player
+    function onPositionChanged() {
+      if (overviewSeekSlider.dragging || !root.player.positionSupported) return
+      // An acknowledged seek replaces the optimistic value immediately.
+      if (seekSettle.running && Math.abs(root.player.position - root.sampledPosition) > 1) return
+      seekSettle.stop()
+      root.sampledPosition = root.player.position
+    }
+    function onIsPlayingChanged() {
+      if (!overviewSeekSlider.dragging && !seekSettle.running && root.player.positionSupported)
+        root.sampledPosition = root.player.position
+    }
+    function onLengthChanged() {
+      if (root.player.lengthSupported && root.player.length > 0) root.cachedLength = root.player.length
     }
   }
 
@@ -319,7 +350,7 @@ Panel {
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
-      blocked: root.editingWeatherLocation
+      blocked: root.editingWeatherLocation || sourceDropdown.popupOpen
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
 
@@ -563,6 +594,7 @@ Panel {
                     spacing: Style.space(4)
                     LabelText {
                       width: parent.width
+                      textFormat: Text.PlainText
                       text: root.player ? (root.player.trackTitle || "Unknown title") : "Nothing playing"
                       horizontalAlignment: Text.AlignHCenter
                       color: root.playerMetadataInk
@@ -572,6 +604,7 @@ Panel {
                     }
                     MutedText {
                       width: parent.width
+                      textFormat: Text.PlainText
                       text: root.player ? (root.player.trackArtist || root.player.identity || "") : "Start a media player"
                       horizontalAlignment: Text.AlignHCenter
                       color: root.playerMetadataInk
@@ -591,7 +624,7 @@ Panel {
                       fontFamily: root.fontFamily
                       fontSize: Style.font.iconLarge
                     }
-                    PanelSlider {
+                    MediaSlider {
                       id: volumeSlider
                       width: parent.width - Style.space(52)
                       bar: root.bar
@@ -641,7 +674,9 @@ Panel {
                       fontFamily: root.fontFamily
                       bordered: true
                       tooltipText: root.player && root.player.isPlaying ? "Pause" : "Play"
-                      enabled: !!root.player
+                      enabled: !!root.player && (root.player.isPlaying
+                        ? (root.player.canPause || root.player.canTogglePlaying)
+                        : (root.player.canPlay || root.player.canTogglePlaying))
                       onClicked: root.mediaAction("playPause")
                     }
                     PanelActionButton {
@@ -665,18 +700,18 @@ Panel {
                       height: Style.space(14)
                       MutedText {
                         anchors.left: parent.left
-                        text: root.seekAvailable ? root.formatDuration(overviewSeekSlider.dragging ? overviewSeekSlider.liveValue : root.trackPosition) : "--:--"
+                        text: root.hasPosition ? root.formatDuration(overviewSeekSlider.dragging ? overviewSeekSlider.liveValue : root.trackPosition) : "--:--"
                         color: root.playerInkMuted
                         font.pixelSize: Math.max(12, Style.font.body)
                       }
                       MutedText {
                         anchors.right: parent.right
-                        text: root.seekAvailable ? root.formatDuration(root.trackLength) : "--:--"
+                        text: root.hasPosition ? root.formatDuration(root.trackLength) : "--:--"
                         color: root.playerInkMuted
                         font.pixelSize: Math.max(12, Style.font.body)
                       }
                     }
-                    PanelSlider {
+                    MediaSlider {
                       id: overviewSeekSlider
                       width: parent.width
                       bar: root.bar
@@ -689,18 +724,7 @@ Panel {
                       value: root.trackPosition
                       enabled: root.seekAvailable || dragging
                       opacity: enabled ? 1 : 0.35
-                      // PanelSlider clears `dragging` before emitting `released`.
-                      // `value` depends on `dragging`, so the binding chain
-                      // re-evaluates synchronously and resets `liveValue` to the
-                      // pre-drag position before `released` fires — seeking with
-                      // its argument would snap straight back. Track the last
-                      // dragged value via `moved` and seek with that instead.
-                      property real dragValue: -1
-                      onMoved: function(value) { dragValue = value }
-                      onReleased: function(value) {
-                        root.seekTo(dragValue >= 0 ? dragValue : value)
-                        dragValue = -1
-                      }
+                      onReleased: function(value) { root.seekTo(value) }
                     }
                   }
                 }

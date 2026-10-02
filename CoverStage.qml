@@ -27,11 +27,8 @@ Item {
     onHoveredChanged: root.pointerStrength = hovered ? 1 : 0
   }
 
-  Behavior on pointerStrength {
-    NumberAnimation { duration: 220 }
-  }
-
-  property var palette: Palette.themePalette(themeTokens())
+  readonly property var fallbackPalette: Palette.themePalette(themeTokens())
+  property var palette: fallbackPalette
 
   readonly property color accent: colorOf(palette.accent)
   readonly property color metadataInk: colorOf(palette.text)
@@ -58,21 +55,19 @@ Item {
 
   // ------------------------------------------------------- palette cache
   property var paletteCache: ({})
+  readonly property bool samplerAvailable: sampler.available
   property string sampledKey: ""
-  property int sampleTries: 0
+  property string samplerKey: ""
 
-  // The cover's texture needs a beat after Image.Ready before Canvas can
-  // sample it; all sampling is funneled through this timer and retried.
-  function scheduleSample(delay) {
-    sampleTimer.interval = Math.max(1, delay)
-    sampleTimer.restart()
-  }
-
+  // Read the decoded artwork directly; item textures may not upload while paused.
   function refreshPalette() {
     var key = root.hasTrack ? String(coverUrl || "") : ""
-    if (key === "") {
-      // No artwork: use the dashboard theme palette.
-      palette = Palette.themePalette(themeTokens())
+    if (sampler.available && key !== samplerKey) {
+      if (samplerKey) sampler.unloadImage(samplerKey)
+      samplerKey = key
+    }
+    if (!key || (String(coverImage.source) === key && coverImage.status === Image.Error)) {
+      palette = root.fallbackPalette
       sampledKey = ""
       return
     }
@@ -82,18 +77,12 @@ Item {
       sampledKey = key
       return
     }
-    // Cache miss: extract as soon as the 32x32 downsample is decoded and
-    // texture-backed. While the panel is closed its content never reaches
-    // the scene graph, so sampling can fail every attempt — wake() re-arms
-    // this when the panel is shown.
-    sampleTries = 0
-    scheduleSample(40)
+    if (!sampler.available) return
+    if (sampler.isImageLoaded(key)) sampler.requestPaint()
+    else if (!sampler.isImageLoading(key) && !sampler.isImageError(key)) sampler.loadImage(key)
   }
 
-  // Re-arm palette extraction (idempotent, cheap when already sampled).
-  function wake() {
-    refreshPalette()
-  }
+  function wake() { refreshPalette() }
 
   onCoverUrlChanged: refreshPalette()
   onHasTrackChanged: {
@@ -101,47 +90,27 @@ Item {
     ambientCanvas.requestPaint()
   }
   onVisibleChanged: refreshPalette()
+  onFallbackPaletteChanged: refreshPalette()
   onPaletteChanged: ambientCanvas.requestPaint()
   onHasCoverChanged: ambientCanvas.requestPaint()
   Component.onCompleted: refreshPalette()
-
-  Timer {
-    id: sampleTimer
-    repeat: false
-    onTriggered: sampler.requestPaint()
-  }
-
-  Image {
-    id: sampleImage
-    source: root.hasTrack ? root.coverUrl : ""
-    visible: false
-    asynchronous: true
-    sourceSize: Qt.size(32, 32)
-    onStatusChanged: root.refreshPalette()
-  }
 
   Canvas {
     id: sampler
     width: 32
     height: 32
     visible: false
+    onAvailableChanged: if (available) root.refreshPalette()
+    onImageLoaded: root.refreshPalette()
     onPaint: {
-      if (sampleImage.status !== Image.Ready) return
-      var key = String(root.coverUrl || "")
-      if (key === "") return
+      var key = root.hasTrack ? String(root.coverUrl || "") : ""
+      if (!key || !isImageLoaded(key)) return
       var ctx = getContext("2d")
       ctx.clearRect(0, 0, 32, 32)
-      ctx.drawImage(sampleImage, 0, 0, 32, 32)
+      ctx.drawImage(key, 0, 0, 32, 32)
       var pixels = ctx.getImageData(0, 0, 32, 32)
       var next = Palette.extract(pixels.data, 32, 32, root.themeTokens())
-      if (!next) {
-        // Decoded but not yet texture-backed — sample again a beat later.
-        if (root.sampleTries < 8) {
-          root.sampleTries++
-          root.scheduleSample(75 * (root.sampleTries + 1))
-        }
-        return
-      }
+      if (!next) return
       if (Object.keys(root.paletteCache).length > 24)
         root.paletteCache = ({})
       root.paletteCache[key] = next
@@ -258,6 +227,7 @@ Item {
       asynchronous: true
       smooth: true
       visible: status === Image.Ready
+      onStatusChanged: root.refreshPalette()
     }
   }
 
@@ -299,11 +269,9 @@ Item {
     visible: root.playing && root.hasTrack
   }
 
-  Timer {
-    interval: 33
-    repeat: true
+  FrameAnimation {
     running: root.playing && root.hasTrack && root.visible
-    onTriggered: aurora.phase += interval / 1000
+    onTriggered: aurora.phase += frameTime
   }
 
 }
