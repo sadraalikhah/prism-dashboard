@@ -1,10 +1,12 @@
 import QtQuick
+import QtQuick.Controls as Controls
 import Quickshell
 import Quickshell.Services.Mpris
 import qs.Commons
 import qs.Ui
 import "Model.js" as Model
 import "Preferences.js" as Prefs
+import "MediaContext.js" as Context
 
 Panel {
   id: root
@@ -67,6 +69,56 @@ Panel {
       paletteKey: coverStage.sampledKey, samplerAvailable: coverStage.samplerAvailable, coverVisible: coverStage.visible, accent: String(playerAccent) })
   }
   function animationStatus() { return JSON.stringify(coverStage.animationStatus()) }
+
+  readonly property bool spotify: Context.isSpotify(player)
+  readonly property string spotifyUri: Context.spotifyUri(player)
+  readonly property string pageUrl: Context.isBrowser(player) ? Context.pageUrl(player) : ""
+  readonly property bool podcast: Context.isPodcast(player)
+  readonly property bool canLike: spotify && spotifyActions.connected
+    && spotifyActions.state.uri === spotifyUri && spotifyActions.state.canLike === true
+  readonly property string leftAction: {
+    if (podcast && seekAvailable) return "back15"
+    if (spotify) return canLike ? "like" : ""
+    if (pageUrl) return "page"
+    return player && player.canControl && player.shuffleSupported ? "shuffle" : ""
+  }
+  readonly property var moreActions: {
+    var actions = []
+    if (!player || podcast) return actions
+    var playbackOptions = !spotify || spotifyUri.indexOf("spotify:track:") === 0
+    if (playbackOptions && player.canControl && player.shuffleSupported && leftAction !== "shuffle")
+      actions.push({key:"shuffle", label:"Shuffle: " + (player.shuffle ? "On" : "Off")})
+    if (playbackOptions && player.canControl && player.loopSupported)
+      actions.push({key:"repeat", label:"Repeat: " + (player.loopState === MprisLoopState.Track ? "Song" : player.loopState === MprisLoopState.Playlist ? "All" : "Off")})
+    if (player.canRaise) actions.push({key:"raise", label:"Open " + playerLabel(player)})
+    return actions
+  }
+  function closeContextMenu() { contextMenu.close() }
+  function contextAction(action) {
+    if (!player) return
+    if (action === "like" && canLike) spotifyActions.like(spotifyUri)
+    else if (action === "shuffle" && player.canControl && player.shuffleSupported) player.shuffle = !player.shuffle
+    else if (action === "repeat" && player.canControl && player.loopSupported)
+      player.loopState = player.loopState === MprisLoopState.None ? MprisLoopState.Playlist
+        : player.loopState === MprisLoopState.Playlist ? MprisLoopState.Track : MprisLoopState.None
+    else if (action === "back15") seekTo(trackPosition - 15)
+    else if (action === "forward30") seekTo(trackPosition + 30)
+    else if (action === "page" && pageUrl) Quickshell.execDetached(["xdg-open", pageUrl])
+    else if (action === "raise" && player.canRaise) player.raise()
+  }
+  function contextStatus() {
+    return JSON.stringify({provider: spotify ? "spotify" : Context.isBrowser(player) ? "browser" : "player",
+      uri:spotifyUri, connected:spotifyActions.connected, liked:spotifyActions.state.liked,
+      canLike:canLike, busy:spotifyActions.busy, error:spotifyActions.error || spotifyActions.state.error || "",
+      leftAction:leftAction, rightActions:moreActions, podcast:podcast, pageUrl:pageUrl,
+      shuffle:player ? player.shuffle : false, loop:player ? player.loopState : 0})
+  }
+  SpotifyActions {
+    id: spotifyActions
+    active: root.spotify
+    onSaveFailed: function(message) { Quickshell.execDetached(["notify-send", "Spotify", "Could not add the song to Liked Songs: " + message]) }
+  }
+
 
   WeatherService {
     id: weather
@@ -190,6 +242,7 @@ Panel {
   }
 
   onTrackIdentityChanged: {
+    contextMenu.close()
     root.cachedLength = root.player && root.player.lengthSupported && root.player.length > 0
       ? root.player.length : 0
     root.sampledPosition = root.player && root.player.positionSupported ? root.player.position : 0
@@ -208,7 +261,7 @@ Panel {
     coverStage.wake()
   }
 
-  function close() { root.editingSettings = false; root.closeWeatherLocation(); controller.hide() }
+  function close() { contextMenu.close(); root.editingSettings = false; root.closeWeatherLocation(); controller.hide() }
   function toggle() { opened ? close() : open() }
 
   function switchPanel(direction) {
@@ -368,7 +421,7 @@ Panel {
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
-      blocked: root.editingSettings || root.editingWeatherLocation || sourceDropdown.popupOpen
+      blocked: root.editingSettings || root.editingWeatherLocation || sourceDropdown.popupOpen || contextMenu.opened
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
 
@@ -625,6 +678,40 @@ Panel {
                   }
                 }
 
+                Controls.Popup {
+                  id: contextMenu
+                  objectName: "mediaContextMenu"
+                  x: playerCard.width - width - playerCard.contentRightInset
+                  y: mediaBlock.y + transport.y - height - Style.space(4)
+                  width: Style.space(210)
+                  padding: Style.space(6)
+                  focus: true
+                  closePolicy: Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
+                  background: BorderSurface {
+                    color: root.scrim(0.98)
+                    borderSpec: Border.controlSpec("normal", root.playerAccent, root.playerAccent)
+                    radius: Style.cornerRadius
+                  }
+                  contentItem: Column {
+                    spacing: Style.space(4)
+                    Repeater {
+                      model: root.moreActions
+                      Button {
+                        required property var modelData
+                        objectName: "mediaOption-" + modelData.key
+                        width: parent.width
+                        text: modelData.label
+                        foreground: root.playerInk
+                        accent: root.playerAccent
+                        fontFamily: root.fontFamily
+                        focusable: true
+                        leftAlign: true
+                        onClicked: { root.closeContextMenu(); root.contextAction(modelData.key) }
+                      }
+                    }
+                  }
+                }
+
                 Column {
                   id: mediaBlock
                   anchors.left: parent.left
@@ -695,8 +782,48 @@ Panel {
                       fontSize: Style.font.title
                     }
                   }
-                  Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                  Item {
+                    id: transport
+                    width: parent.width
+                    height: Style.space(46)
+                    PanelActionButton {
+                      objectName: "mediaContextLeft"
+                      anchors.left: parent.left
+                      anchors.verticalCenter: parent.verticalCenter
+                      size: Style.space(28)
+                      fontSize: Style.font.iconLarge
+                      fontFamily: root.fontFamily
+                      focusable: true
+                      visible: root.leftAction !== ""
+                      enabled: root.leftAction !== "like" || !spotifyActions.busy
+                      iconText: root.leftAction === "like" ? (spotifyActions.state.liked ? "󰋑" : "󰋕")
+                        : root.leftAction === "back15" ? "󰓄" : root.leftAction === "page" ? "󰖟" : "󰒟"
+                      foreground: root.leftAction === "like" && spotifyActions.state.liked
+                        || root.leftAction === "shuffle" && root.player && root.player.shuffle ? root.playerAccent : root.playerInkMuted
+                      hoverColor: root.playerAccent
+                      tooltipText: root.leftAction === "like" ? (spotifyActions.error || spotifyActions.state.error
+                        || (spotifyActions.busy ? "Saving song…" : spotifyActions.state.liked ? "Already in Liked Songs" : "Add to Liked Songs"))
+                        : root.leftAction === "back15" ? "Back 15 seconds" : root.leftAction === "page" ? "Open media page"
+                        : "Shuffle: " + (root.player && root.player.shuffle ? "On" : "Off")
+                      onClicked: root.contextAction(root.leftAction)
+                    }
+                    PanelActionButton {
+                      objectName: "mediaContextRight"
+                      anchors.right: parent.right
+                      anchors.verticalCenter: parent.verticalCenter
+                      size: Style.space(28)
+                      fontSize: Style.font.iconLarge
+                      fontFamily: root.fontFamily
+                      focusable: true
+                      visible: root.podcast ? root.seekAvailable : root.moreActions.length > 0
+                      iconText: root.podcast ? "󰓅" : "󰇘"
+                      foreground: root.playerInkMuted
+                      hoverColor: root.playerAccent
+                      tooltipText: root.podcast ? "Forward 30 seconds" : "Playback options"
+                      onClicked: root.podcast ? root.contextAction("forward30") : contextMenu.open()
+                    }
+                    Row {
+                    anchors.centerIn: parent
                     spacing: Style.space(14)
                     PanelActionButton {
                       size: Style.space(36)
@@ -737,6 +864,7 @@ Panel {
                       enabled: root.player && root.player.canGoNext
                       onClicked: root.mediaAction("next")
                     }
+                  }
                   }
                   Column {
                     width: parent.width

@@ -101,6 +101,7 @@ BarWidget {
     function cycleFormat(): void { root.cycleFormat() }
     function editWeather(): void { root.open(); if (panelLoader.item) panelLoader.item.editWeatherLocation() }
     function refreshWeather(): void { if (panelLoader.item) panelLoader.item.refreshWeather() }
+    function contextStatus(): string { return panelLoader.item ? panelLoader.item.contextStatus() : "{}" }
     function musicStatus(): string { return panelLoader.item ? panelLoader.item.musicStatus() : "{}" }
     function animationStatus(): string { return panelLoader.item ? panelLoader.item.animationStatus() : "{}" }
     function openSettings(): void { root.open(); if (panelLoader.item) panelLoader.item.editSettings() }
