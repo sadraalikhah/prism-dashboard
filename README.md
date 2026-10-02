@@ -67,12 +67,14 @@ The clock remains usable if CAVA is missing.
 Right-click the clock to cycle Omarchy's formats. Your choice survives a
 restart. Vertical bars have their own stacked formats.
 
-https://github.com/user-attachments/assets/b215cc3f-8f9e-4f32-93d4-2a9233b81d0c
+https://github.com/user-attachments/assets/784eb84c-aee4-46a0-8ed1-a3f24db9b5bd
 
 [Download MP4](docs/media/clock.mp4)
 
-The clock recording uses controlled demo band levels to make the renderer and
-format changes visible. Normal use reads real audio through CAVA.
+The clock recording uses the interactive design preview with simulated audio
+to show bass pulses and the pause/resume fade. It is captured at 1600 × 400
+and 30 fps. The installed plugin reads real audio through CAVA; right-click
+format cycling is a separate feature.
 
 ### A calendar beside your music
 

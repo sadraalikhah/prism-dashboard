@@ -1,0 +1,178 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Clock spectrum preview</title><meta name="viewport" content="width=device-width,initial-scale=1"><body><div id="clock-glow-preview">
+  <div class="viz-dotted-background glow-stage">
+    <div class="omarchy-preview" aria-label="Omarchy clock with a CAVA-style audio spectrum">
+      <div class="omarchy-bar">
+        <div class="bar-side" aria-hidden="true"><i data-lucide="menu"></i><span class="workspace-active">1</span><span>2</span><span>3</span></div>
+        <div class="bar-center">
+          <span class="neighbor" aria-hidden="true"><i data-lucide="cloud"></i></span>
+          <button class="clock-label cursor-interaction" type="button" aria-label="Preview a bass hit behind the clock">
+            <canvas class="clock-glow" aria-hidden="true"></canvas>
+            <span class="clock-text">Friday 17:20</span>
+          </button>
+          <span class="neighbor" aria-hidden="true"><i data-lucide="sparkles"></i></span>
+        </div>
+        <div class="bar-side right-side" aria-hidden="true"><i data-lucide="wifi"></i><i data-lucide="volume-2"></i><i data-lucide="battery"></i></div>
+      </div>
+      <div class="track-caption"><span class="playback-dot"></span><span class="playback-caption" aria-live="polite">Playing · Simulated audio</span></div>
+    </div>
+  </div>
+  <div class="viz-controls">
+    <button class="btn" type="button" id="clock-glow-playback" aria-pressed="true">Pause playback</button>
+    <button class="btn" type="button" id="clock-glow-hover">Bass hit</button>
+    <button class="btn" type="button" id="record-preview">Record preview</button>
+    <span id="record-status" role="status">Ready to record 1600 × 400 at 30 fps</span>
+  </div>
+  <style>
+    #clock-glow-preview .glow-stage { padding: 40px 0; margin-bottom: 12px; }
+    #clock-glow-preview .omarchy-preview { --bar-bg: #101518; --bar-ink: #ead4a0; --bar-dim: #847754; --bar-accent: #ca4a7b; width: 100%; background: var(--bar-bg); font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; color: var(--bar-ink); }
+    #clock-glow-preview .omarchy-bar { display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 14px; gap: 12px; }
+    #clock-glow-preview .bar-side { display: flex; align-items: center; gap: 14px; width: 100px; color: var(--bar-dim); font-size: 13px; flex-shrink: 0; }
+    #clock-glow-preview .workspace-active { color: var(--bar-ink); }
+    #clock-glow-preview .right-side { justify-content: flex-end; }
+    #clock-glow-preview .bar-side svg, #clock-glow-preview .neighbor svg { width: 14px; height: 14px; }
+    #clock-glow-preview .bar-center { display: flex; gap: 10px; align-items: center; min-width: 0; }
+    #clock-glow-preview .neighbor { display: flex; color: var(--bar-ink); }
+    #clock-glow-preview .clock-label { position: relative; isolation: isolate; overflow: hidden; border: 0; border-radius: 4px; padding: 6px 12px; height: 32px; min-width: 150px; background: var(--bar-bg); color: var(--bar-ink); font: inherit; font-size: 14px; white-space: nowrap; }
+    #clock-glow-preview .clock-glow { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+    #clock-glow-preview .clock-text { position: relative; text-shadow: 0 1px 3px var(--bar-bg); }
+    #clock-glow-preview .track-caption { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 16px 10px; border-top: 1px solid #24262a; color: var(--bar-ink); font-size: 11px; }
+    #clock-glow-preview .playback-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--bar-accent); }
+    #clock-glow-preview [data-playing="false"] .playback-dot { background: var(--bar-dim); }
+    @media (max-width: 520px) {
+      #clock-glow-preview .bar-side { width: auto; gap: 8px; }
+      #clock-glow-preview .bar-side span:not(.workspace-active), #clock-glow-preview .right-side i:not(:last-child), #clock-glow-preview .right-side svg:not(:last-child) { display: none; }
+      #clock-glow-preview .omarchy-bar { padding: 0 8px; gap: 8px; }
+      #clock-glow-preview .bar-center { gap: 7px; }
+    }
+  </style>
+  <script>
+  (() => {
+    const root = document.getElementById('clock-glow-preview');
+    const product = root.querySelector('.omarchy-preview');
+    const clock = root.querySelector('.clock-label');
+    const canvas = root.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const play = root.querySelector('#clock-glow-playback');
+    const hover = root.querySelector('#clock-glow-hover');
+    const caption = root.querySelector('.playback-caption');
+    const text = root.querySelector('.clock-text');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const design = { intensity: 48, accent: '#ca4a7b', bars: 22 };
+    let playing = true, opacity = 1, last = 0, phase = 0, width = 160, height = 32, bassStarted = -10000;
+    let levels = new Float32Array(design.bars);
+    function update() {
+      product.dataset.playing = String(playing);
+      product.style.setProperty('--bar-accent', design.accent);
+      play.textContent = playing ? 'Pause playback' : 'Resume playback';
+      play.setAttribute('aria-pressed', String(playing));
+      caption.textContent = (playing ? 'Playing' : 'Paused') + ' · Simulated audio';
+      hover.disabled = !playing;
+    }
+    function resize() {
+      width = clock.clientWidth; height = clock.clientHeight;
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function rgb(hex) { return [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)); }
+    function draw(dt, now) {
+      if (playing && !reduced.matches) phase += dt;
+      opacity += ((playing ? 1 : 0)-opacity) * (1-Math.exp(-9*dt));
+      ctx.clearRect(0,0,width,height);
+      const pink = rgb(design.accent), gold = [204,167,102], amount = opacity*design.intensity/100;
+      const count = Math.round(design.bars);
+      if(levels.length!==count) levels = new Float32Array(count);
+      const stride = (width-64)/count, barWidth = Math.max(16,stride-16);
+      const beat = Math.pow(Math.max(0,Math.sin(phase*12.1)),7);
+      const bassHit = Math.exp(-Math.max(0,now-bassStarted)/190);
+      for(let i=0;i<count;i++) {
+        const frequency=i/(count-1);
+        const texture=.5+.25*Math.sin(phase*(8+i*.21)+i*1.7)+.25*Math.sin(phase*19-i*.73);
+        const melody=Math.pow(.5+.5*Math.sin(phase*3.3-i*.37),2);
+        const lowEnd = (beat*.58+bassHit*.95)*Math.exp(-frequency*3.8);
+        const target = playing ? Math.min(.96,.08+texture*(.17+.30*melody)+lowEnd) : 0;
+        const rate = target>levels[i] ? 42 : 9;
+        levels[i] += (target-levels[i])*(1-Math.exp(-rate*dt));
+        const barHeight=Math.round(levels[i]*(height-24));
+        if(barHeight<1 || opacity<.003) continue;
+        const bx=32+i*stride, by=height-barHeight;
+        const gradient=ctx.createLinearGradient(0,by,0,height);
+        gradient.addColorStop(0,`rgba(${gold.join(',')},${amount*.9})`);
+        gradient.addColorStop(.45,`rgba(${pink.join(',')},${amount})`);
+        gradient.addColorStop(1,`rgba(${pink.join(',')},${amount*.48})`);
+        ctx.fillStyle=gradient;
+        for(let segment=height-24;segment>=by;segment-=32) {
+          ctx.fillRect(bx,Math.max(by,segment),barWidth,Math.min(24,height-Math.max(by,segment)));
+        }
+        ctx.fillStyle=`rgba(${gold.join(',')},${amount*.95})`;
+        ctx.fillRect(bx,by,barWidth,8);
+      }
+      root.dataset.glowOpacity = opacity.toFixed(3);
+      root.dataset.spectrumLevels = Array.from(levels,v=>v.toFixed(2)).join(',');
+    }
+    const recordingCanvas = document.createElement('canvas');
+    recordingCanvas.width=1600; recordingCanvas.height=400;
+    const recordingContext=recordingCanvas.getContext('2d');
+    function recordingFrame() {
+      recordingContext.fillStyle='#101518';recordingContext.fillRect(0,0,1600,400);
+      recordingContext.drawImage(canvas,(1600-width)/2,46,width,height);
+      recordingContext.fillStyle='#ead4a0';recordingContext.font='112px "JetBrainsMono Nerd Font", "DejaVu Sans Mono", monospace';
+      recordingContext.textAlign='center';recordingContext.textBaseline='middle';
+      recordingContext.fillText(text.textContent,800,174);
+      recordingContext.font='24px "JetBrainsMono Nerd Font", "DejaVu Sans Mono", monospace';
+      recordingContext.fillStyle=playing?'#ca4a7b':'#847754';
+      recordingContext.fillText(caption.textContent,800,356);
+    }
+    const recordButton=root.querySelector('#record-preview');
+    const recordStatus=root.querySelector('#record-status');
+    recordButton.addEventListener('click',()=>{
+      root.querySelector('#download-recording')?.remove();
+      playing=true;opacity=1;phase=0;levels.fill(0);update();
+      const parts=[];
+      const recorder=new MediaRecorder(recordingCanvas.captureStream(30),{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:8000000});
+      recorder.ondataavailable=e=>{if(e.data.size)parts.push(e.data)};
+      recorder.onstop=async()=>{
+        const response=await fetch('/clock-recording.webm',{method:'POST',body:new Blob(parts,{type:'video/webm'})});
+        if(!response.ok){recordStatus.textContent='Export failed';recordButton.disabled=false;return;}
+        const link=document.createElement('a');link.href='/clock-recording.webm';
+        link.download='clock-preview.webm';link.textContent='Download recording';link.id='download-recording';
+        root.querySelector('.viz-controls').appendChild(link);
+        recordButton.disabled=false;recordStatus.textContent='Recording downloaded: 1600 × 400, 30 fps';
+      };
+      recordButton.disabled=true;recordStatus.textContent='Recording simulated playback, bass pulses, pause and resume…';
+      recorder.start();
+      setTimeout(()=>{bassStarted=performance.now()},1000);
+      setTimeout(()=>{playing=false;update()},3000);
+      setTimeout(()=>{playing=true;update()},4500);
+      setTimeout(()=>{bassStarted=performance.now()},6500);
+      setTimeout(()=>recorder.stop(),8000);
+    });
+    function frame(now) {
+      const dt = last ? Math.min((now-last)/1000,.05) : 1/60; last=now;
+      draw(dt,now);recordingFrame();
+      if(root.isConnected) requestAnimationFrame(frame);
+    }
+    play.addEventListener('click', () => { playing=!playing;update(); });
+    hover.addEventListener('click', () => { bassStarted=performance.now(); });
+    clock.addEventListener('click', () => { if(playing) bassStarted=performance.now(); });
+    text.textContent = 'Friday 17:20';
+    update();new ResizeObserver(resize).observe(clock);resize();
+    requestAnimationFrame(frame);
+  })();
+  </script>
+</div>
+<style>
+html,body{margin:0;background:#101518;color:#ead4a0;font-family:monospace}
+#clock-glow-preview{width:1600px;transform-origin:top left}
+#clock-glow-preview .glow-stage{padding:0;margin:0}
+#clock-glow-preview .omarchy-bar{height:320px;padding:0;justify-content:center}
+#clock-glow-preview .bar-side,#clock-glow-preview .neighbor{display:none}
+#clock-glow-preview .clock-label{width:1440px;min-width:1440px;height:256px;font-size:112px;padding:0}
+#clock-glow-preview .track-caption{font-size:24px;padding:24px}
+#clock-glow-preview .viz-controls{padding:20px;font-size:24px}
+#clock-glow-preview .btn{font:inherit;padding:12px 18px;color:#ead4a0;background:#232930;border:1px solid #847754;cursor:pointer}
+</style>
+<script>
+function fit(){document.getElementById('clock-glow-preview').style.transform='scale('+Math.min(1,innerWidth/1600)+')'}
+addEventListener('resize',fit);fit();
+</script></body></html>

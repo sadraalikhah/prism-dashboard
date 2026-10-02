@@ -1,6 +1,7 @@
 # A tour of Prism
 
-All captures show the real Quickshell plugin. The main image stays
+The dashboard captures show the real Quickshell plugin; the clock recording
+uses the interactive design preview with simulated audio. The main image stays
 **Poison Girl by HIM**; the feature demos use different song palettes.
 The weather location is **Paris, France**.
 [Capture details and credits](credits.md) describe the demo data.
@@ -58,12 +59,13 @@ The clock remains usable if CAVA is missing.
 Right-click the clock to cycle Omarchy's formats. Your choice survives a
 restart. Vertical bars have their own stacked formats.
 
-![Clock spectrum and format cycling](media/clock.gif)
+![Clock preview with bass pulses and pause/resume fade](media/clock.gif)
 
 [Watch the MP4 recording](media/clock.mp4)
 
-The clock recording uses controlled demo band levels to make the renderer and
-format changes visible. Normal use reads real audio through CAVA.
+The clock recording uses the interactive design preview with simulated audio
+to show bass pulses and the pause/resume fade at 1600 × 400 and 30 fps.
+The installed plugin reads real audio through CAVA.
 
 ## A calendar beside your music
 

@@ -53,8 +53,9 @@ artwork CDN. The fixture index records each source URL.
 Song and album artwork belong to their respective rights holders; they are not
 relicensed under the project's MIT license. No song audio is included.
 
-The captures record the real Prism Dashboard QML scene in Quickshell, with
-private MPRIS demo metadata. Paris is a demonstration location and does not
+The dashboard captures record the real Prism Dashboard QML scene in
+Quickshell, with private MPRIS demo metadata. The clock clip records the
+interactive HTML design preview with simulated audio at 1600 × 400 and 30 fps. Paris is a demonstration location and does not
 identify the user's location. The weather and search displays use cached
 public API responses for Paris. Podcast and browser examples use controlled
 capabilities with the selected showcase artwork.
@@ -65,8 +66,8 @@ playback controls. Canonical attachment URLs are recorded in
 `media/` for local use.
 
 The Spotify save demonstration uses a fake extension, so it changes no real
-library. The clock clip uses deterministic demo band levels in the real clock
-renderer; the installed plugin uses CAVA and PipeWire. The hover recording
+library. The clock preview simulates audio energy, bass pulses and a pause/resume fade;
+the installed plugin uses CAVA and PipeWire. The hover recording
 feeds a repeatable cursor path through the same spring and trail code used by
 normal pointer movement.
 

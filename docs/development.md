@@ -69,10 +69,9 @@ that image before sharing it.
 
 It uses private MPRIS fixtures for the nine songs in
 `tools/demo-fixtures/tracks.json`, cached Paris weather and city-search
-responses, and deterministic clock demo bands. `--keep-hero` preserves the
-existing HIM overview; `--finish` captures the final menu, provider and clock
-examples. Preference writes
-stay in a fake bar host. The like demonstration talks to a fake extension.
+responses. `--keep-hero` preserves the existing HIM overview; `--finish` captures the final menu and provider
+examples. The clock preview is recorded separately as described below.
+Preference writes stay in a fake bar host. The like demonstration talks to a fake extension.
 No user location, Spotify library, or real playback is modified. Recordings
 contain no audio. To refresh the inline players after recording, upload the
 MP4s as GitHub user attachments and update `docs/media/video-attachments.json`.
@@ -84,3 +83,26 @@ After a reload, inspect the actual dashboard and query `musicStatus`,
 `contextStatus`, `weatherStatus`, `animationStatus`, and `spectrumStatus`.
 A copied source file does not establish that the running shell loaded it.
 The [setup guide](setup.md#troubleshooting) lists the commands.
+
+## Record the clock preview
+
+The clock video is recorded separately from the interactive design preview,
+so it has enough pixels for GitHub playback and shows the simulated bass
+pulses and pause/resume fade.
+
+```bash
+python3 tools/serve-clock-preview.py
+```
+
+Open `http://127.0.0.1:8767/clock-preview.html` in a browser, click
+**Record preview**, then **Download recording**. The eight-second silent
+recording is 1600 × 400 at 30 fps. The exporter also saves
+`/tmp/prism-clock-preview.webm`. Convert that file:
+
+```bash
+ffmpeg -i /tmp/prism-clock-preview.webm -an -c:v libx264 -crf 18 -pix_fmt yuv420p -movflags +faststart docs/media/clock.mp4
+```
+
+Upload the replacement MP4 as a GitHub attachment and update its canonical
+URL in `README.md` and `docs/media/video-attachments.json`. This preview is
+simulated audio, not a recording of live CAVA output.
