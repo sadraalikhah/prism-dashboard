@@ -15,6 +15,7 @@ Item {
   property color trackColor: bar ? Style.selectedFillFor(bar.foreground, Color.accent) : "#333"
   property color fillColor: bar ? bar.foreground : Color.foreground
   property color knobColor: bar ? bar.foreground : Color.foreground
+  property color knobBorderColor: Qt.darker(knobColor, 2.2)
   property bool dragging: false
   property real trackHeight: Math.max(4, Math.round(Style.spacing.controlHeight * 0.11))
   property real knobSize: Math.max(14, Math.round(Style.spacing.controlHeight * 0.38))
@@ -83,7 +84,7 @@ Item {
     height: root.knobSize
     radius: root.knobSize / 2
     color: root.knobColor
-    borderSpec: Border.flat(root.bar ? root.bar.background : "#101315", Math.max(1, Style.space(2)))
+    borderSpec: Border.flat(root.knobBorderColor, Math.max(1, Style.space(2)))
     anchors.verticalCenter: track.verticalCenter
     x: Math.max(0, Math.min(track.width - width, track.width * root.progress - width / 2))
     scale: root._hot ? 1.15 : 1.0
