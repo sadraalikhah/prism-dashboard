@@ -50,6 +50,7 @@ Panel {
       volume: appVolume, cover: String(coverArt), hasCover: coverStage.hasCover,
       paletteKey: coverStage.sampledKey, samplerAvailable: coverStage.samplerAvailable, coverVisible: coverStage.visible, accent: String(playerAccent) })
   }
+  function animationStatus() { return JSON.stringify(coverStage.animationStatus()) }
 
   WeatherService {
     id: weather
@@ -499,6 +500,7 @@ Panel {
                 CoverStage {
                   id: coverStage
                   paletteSource: root.paletteSource
+                  audioEnergy: root.hostWidget ? root.hostWidget.bassEnergy : 0
                   anchors.fill: parent
                   anchors.topMargin: playerCard.borderTop
                   anchors.bottomMargin: playerCard.borderBottom

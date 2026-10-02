@@ -11,6 +11,12 @@ BarWidget {
 
   property date displayDate: clock.date
   readonly property var paletteSource: clockPalette.item
+  readonly property real bassEnergy: {
+    if (!spectrum.active || !spectrum.levels.length) return 0
+    var sum = 0, count = Math.min(6, spectrum.levels.length)
+    for (var i = 0; i < count; i++) sum += spectrum.levels[i]
+    return sum / count
+  }
   readonly property string configuredFormat: vertical
     ? setting("verticalFormat", "HH\n—\nmm")
     : setting("format", "dddd HH:mm")
@@ -83,6 +89,7 @@ BarWidget {
     function editWeather(): void { root.open(); if (panelLoader.item) panelLoader.item.editWeatherLocation() }
     function refreshWeather(): void { if (panelLoader.item) panelLoader.item.refreshWeather() }
     function musicStatus(): string { return panelLoader.item ? panelLoader.item.musicStatus() : "{}" }
+    function animationStatus(): string { return panelLoader.item ? panelLoader.item.animationStatus() : "{}" }
     function spectrumStatus(): string {
       var state = JSON.parse(spectrum.status())
       state.accent = String(spectrum.accent)
@@ -114,7 +121,8 @@ BarWidget {
     anchors.fill: parent
     anchors.leftMargin: 3
     anchors.rightMargin: 3
-    active: root.setting("clockSpectrum", true) && root.visible && !!panelLoader.item
+    showBars: root.setting("clockSpectrum", true)
+    active: (showBars || root.opened) && root.visible && !!panelLoader.item
       && !!panelLoader.item.player && panelLoader.item.player.isPlaying
     accent: clockPalette.item ? clockPalette.item.accent : Color.accent
     ink: button.foreground

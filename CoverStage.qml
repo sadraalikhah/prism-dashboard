@@ -10,6 +10,10 @@ Item {
   property url coverUrl: ""
   property bool hasTrack: false
   property bool playing: false
+  property real audioEnergy: 0
+  property real bassLevel: 0
+  property real flowHover: 0
+  onPlayingChanged: if (!playing) { bassLevel = 0; flowHover = 0 }
   property real radius: Style.cornerRadius
   // Keep the icon clear of the card's header and controls.
   property real artTopInset: 0
@@ -24,6 +28,11 @@ Item {
   property point tailPosition: bubblePosition
   property Item effectHost: null
   property var paletteSource: null
+
+  function animationStatus() {
+    return { playing: playing, phase: aurora.phase, bass: bassLevel,
+      input: audioEnergy, effectVisible: aurora.visible, hover: flowHover }
+  }
 
   HoverHandler {
     onPointChanged: {
@@ -304,6 +313,8 @@ Item {
     fragmentShader: "Aurora.frag.qsb"
     property real phase: Math.random() * 36
     property real waveSeed: Math.random() * 4096
+    property real bassEnergy: root.bassLevel
+    property real flowHoverStrength: root.flowHover
     property real aspect: width / Math.max(1, height)
     property size cardSize: Qt.size(width, height)
     property real cardRadius: root.radius
@@ -323,6 +334,10 @@ Item {
     onTriggered: {
       aurora.phase += frameTime
       root.advanceBubble(frameTime)
+      var dt = Math.min(frameTime, 0.05)
+      var rate = root.audioEnergy > root.bassLevel ? 9 : 3
+      root.bassLevel += (root.audioEnergy - root.bassLevel) * (1 - Math.exp(-rate * dt))
+      root.flowHover += (root.pointerStrength - root.flowHover) * (1 - Math.exp(-4 * dt))
     }
   }
 

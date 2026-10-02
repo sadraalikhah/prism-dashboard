@@ -4,6 +4,7 @@ import Quickshell.Io
 Item {
   id: root
   property bool active: false
+  property bool showBars: true
   property color accent: "transparent"
   property color ink: "transparent"
   property var levels: []
@@ -21,7 +22,7 @@ Item {
     "[smoothing]", "noise_reduction = 70", ""
   ].join("\n")
 
-  opacity: active && available && !failed ? 0.48 : 0
+  opacity: showBars && active && available && !failed ? 0.48 : 0
   visible: opacity > 0
   clip: true
   Behavior on opacity { NumberAnimation { duration: 120 } }
