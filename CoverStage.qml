@@ -17,14 +17,53 @@ Item {
   property real pointerX: 0.5
   property real pointerY: 0.5
   property real pointerStrength: 0
+  property bool pointerInitialized: false
+  property point bubblePosition: Qt.point(0.5, 0.5)
+  property point bubbleVelocity: Qt.point(0, 0)
+  property point trailPosition: bubblePosition
+  property point tailPosition: bubblePosition
   property Item effectHost: null
 
   HoverHandler {
     onPointChanged: {
       root.pointerX = point.position.x / Math.max(1, root.width)
       root.pointerY = point.position.y / Math.max(1, root.height)
+      if (!root.pointerInitialized) {
+        root.bubblePosition = Qt.point(root.pointerX, root.pointerY)
+        root.trailPosition = root.bubblePosition
+        root.tailPosition = root.bubblePosition
+        root.pointerInitialized = true
+      }
     }
     onHoveredChanged: root.pointerStrength = hovered ? 1 : 0
+  }
+
+  // An underdamped spring carries momentum past the cursor and settles back.
+  // Small substeps keep the spring stable after a dropped frame.
+  function advanceBubble(frameTime) {
+    var elapsed = Math.min(frameTime, 0.05)
+    var steps = Math.max(1, Math.ceil(elapsed * 120))
+    var dt = elapsed / steps
+    var x = bubblePosition.x, y = bubblePosition.y
+    var vx = bubbleVelocity.x, vy = bubbleVelocity.y
+    var tx = trailPosition.x, ty = trailPosition.y
+    var ex = tailPosition.x, ey = tailPosition.y
+    var trailBlend = 1 - Math.exp(-14 * dt)
+    var tailBlend = 1 - Math.exp(-10 * dt)
+    for (var i = 0; i < steps; i++) {
+      vx += ((pointerX - x) * 360 - vx * 20) * dt
+      vy += ((pointerY - y) * 360 - vy * 20) * dt
+      x += vx * dt
+      y += vy * dt
+      tx += (x - tx) * trailBlend
+      ty += (y - ty) * trailBlend
+      ex += (tx - ex) * tailBlend
+      ey += (ty - ey) * tailBlend
+    }
+    bubblePosition = Qt.point(x, y)
+    bubbleVelocity = Qt.point(vx, vy)
+    trailPosition = Qt.point(tx, ty)
+    tailPosition = Qt.point(ex, ey)
   }
 
   readonly property var fallbackPalette: Palette.themePalette(themeTokens())
@@ -256,12 +295,15 @@ Item {
     parent: root.effectHost || root
     anchors.fill: parent
     fragmentShader: "Aurora.frag.qsb"
-    property real phase: 0
+    property real phase: Math.random() * 36
+    property real waveSeed: Math.random() * 4096
     property real aspect: width / Math.max(1, height)
     property size cardSize: Qt.size(width, height)
     property real cardRadius: root.radius
-    property real hoverX: root.pointerX
-    property real hoverY: root.pointerY
+    property vector2d hoverPosition: Qt.vector2d(root.bubblePosition.x, root.bubblePosition.y)
+    property vector2d hoverVelocity: Qt.vector2d(root.bubbleVelocity.x, root.bubbleVelocity.y)
+    property vector2d trailPosition: Qt.vector2d(root.trailPosition.x, root.trailPosition.y)
+    property vector2d tailPosition: Qt.vector2d(root.tailPosition.x, root.tailPosition.y)
     property real hoverStrength: root.playing && root.hasTrack ? root.pointerStrength : 0
     property color primaryColor: root.colorOf(root.palette.primary)
     property color secondaryColor: root.colorOf(root.palette.secondary)
@@ -271,7 +313,10 @@ Item {
 
   FrameAnimation {
     running: root.playing && root.hasTrack && root.visible
-    onTriggered: aurora.phase += frameTime
+    onTriggered: {
+      aurora.phase += frameTime
+      root.advanceBubble(frameTime)
+    }
   }
 
 }

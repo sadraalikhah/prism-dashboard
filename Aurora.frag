@@ -8,8 +8,11 @@ layout(std140, binding = 0) uniform buf {
     float qt_Opacity;
     float phase;
     float aspect;
-    float hoverX;
-    float hoverY;
+    float waveSeed;
+    vec2 hoverPosition;
+    vec2 hoverVelocity;
+    vec2 trailPosition;
+    vec2 tailPosition;
     float hoverStrength;
     float cardRadius;
     vec2 cardSize;
@@ -20,6 +23,11 @@ layout(std140, binding = 0) uniform buf {
 
 float randomValue(vec2 seed) {
     return fract(sin(dot(seed, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float mergeBubbles(float a, float b, float softness) {
+    float h = clamp(0.5 + 0.5 * (b - a) / softness, 0.0, 1.0);
+    return mix(b, a, h) - softness * h * (1.0 - h);
 }
 
 void main() {
@@ -50,8 +58,8 @@ void main() {
         float waveClock = t + slot * waveLifetime * 0.5;
         float age = mod(waveClock, waveLifetime) / waveLifetime;
         float generation = floor(waveClock / waveLifetime);
-        float seed = generation * 2.0 + slot;
-        vec2 origin = vec2(0.16) + 0.68 * vec2(
+        float seed = waveSeed + generation * 2.0 + slot;
+        vec2 origin = vec2(0.12) + 0.76 * vec2(
             randomValue(vec2(seed, 7.31)),
             randomValue(vec2(seed, 23.47))
         );
@@ -64,8 +72,22 @@ void main() {
         float fade = smoothstep(0.0, 0.16, age) * (1.0 - smoothstep(0.74, 1.0, age));
         groupEnergy = max(groupEnergy, envelope * (0.45 + 0.55 * front) * fade);
     }
-    vec2 hoverDelta = vec2((uv.x - hoverX) * aspect, uv.y - hoverY);
-    float hoverAura = (1.0 - smoothstep(0.035, 0.16, length(hoverDelta))) * hoverStrength;
+    vec2 hoverDelta = (uv - hoverPosition) * vec2(aspect, 1.0);
+    vec2 velocity = hoverVelocity * vec2(aspect, 1.0);
+    float speed = length(velocity);
+    vec2 direction = speed > 0.0001 ? velocity / speed : vec2(1.0, 0.0);
+    float stretch = 1.0 + min(speed * 0.25, 0.75);
+    vec2 bubble = vec2(dot(hoverDelta, direction) / stretch,
+                       dot(hoverDelta, vec2(-direction.y, direction.x)) * sqrt(stretch));
+    float angle = atan(bubble.y, bubble.x);
+    float wobble = 0.003 * sin(angle * 3.0 + t * 2.2)
+                 + min(speed * 0.003, 0.007) * sin(angle * 2.0 - t * 3.0);
+    float bubbleDistance = length(bubble) - (0.105 + wobble);
+    float trailSize = min(speed * 0.018, 0.025);
+    float trailDistance = length((uv - trailPosition) * vec2(aspect, 1.0)) - (0.055 + trailSize);
+    float tailDistance = length((uv - tailPosition) * vec2(aspect, 1.0)) - (0.028 + trailSize * 0.6);
+    float liquidDistance = mergeBubbles(mergeBubbles(bubbleDistance, trailDistance, 0.045), tailDistance, 0.035);
+    float hoverAura = (1.0 - smoothstep(-0.012, 0.018, liquidDistance)) * hoverStrength;
     float dotVisibility = max(smoothstep(0.02, 0.30, groupEnergy), hoverAura * 0.82);
     float dotSize = mix(0.045, 0.065, dotSeed);
     float dotDistance = length(circularCell);
