@@ -10,9 +10,9 @@ Open the clock to bring your music, calendar, and local weather into one panel.
 
 ## See every feature
 
-Animated features have looping previews and links to silent MP4 recordings.
-The gallery uses Poison Girl by HIM, Paris demo weather, and isolated player
-fixtures. [Capture details and credits](docs/credits.md).
+Animated features use inline video players with playback controls.
+The main image stays Poison Girl by HIM; other examples use contrasting song
+covers, Paris demo weather, and isolated player fixtures. [Capture details and credits](docs/credits.md).
 
 ### Color that follows the artwork
 
@@ -20,12 +20,12 @@ The cover sets the player's accent, sliders, hover states, and clock spectrum.
 A shared sampler keeps them in step. A diagonal glow draws color through the
 artwork, while darker shading keeps the title and controls readable.
 
-This recording switches between cover colors and the Omarchy theme accent.
-The chosen song and cover stay the same.
+This recording moves between HIM, The Weeknd, Billie Eilish, and Tame Impala.
+The artwork, controls, and clock palette update together as the song changes.
 
-![Cover colors and theme colors](docs/media/dynamic-colors.gif)
+https://github.com/user-attachments/assets/4c39fd5a-11fa-4a17-bac0-9a953d15ba8f
 
-[Watch the MP4 recording](docs/media/dynamic-colors.mp4)
+[Download MP4](docs/media/dynamic-colors.mp4)
 
 ### A field of drifting dots
 
@@ -33,18 +33,18 @@ Small dots form moving clusters across the player. They drift from different
 places instead of repeatedly starting at the center. The denser field gives
 motion to the whole cover.
 
-![Drifting dots across the cover](docs/media/dots.gif)
+https://github.com/user-attachments/assets/1c8dca7b-aada-4f9e-b8b0-2d3de798420b
 
-[Watch the MP4 recording](docs/media/dots.mp4)
+[Download MP4](docs/media/dots.mp4)
 
 ### Soft waves behind the music
 
 Broad waves move through the cover's colors. Dots and waves have separate
 switches, so you can choose either effect or combine them.
 
-![Soft waves over the album artwork](docs/media/waves.gif)
+https://github.com/user-attachments/assets/62644ca0-12d4-4023-848d-077b14ace519
 
-[Watch the MP4 recording](docs/media/waves.mp4)
+[Download MP4](docs/media/waves.mp4)
 
 ### A liquid trail that catches up
 
@@ -52,9 +52,9 @@ The hover bubble follows a spring. It lags behind, accelerates toward your
 cursor, overshoots, and settles back. Two trailing points stretch it into a
 fluid shape rather than a rigid pointer highlight.
 
-![The liquid hover bubble and its trail](docs/media/liquid-hover.gif)
+https://github.com/user-attachments/assets/0990180d-fab6-4646-b2b1-a4942be5280b
 
-[Watch the MP4 recording](docs/media/liquid-hover.mp4)
+[Download MP4](docs/media/liquid-hover.mp4)
 
 Music animations freeze and fade away when the selected player pauses.
 
@@ -67,9 +67,9 @@ The clock remains usable if CAVA is missing.
 Right-click the clock to cycle Omarchy's formats. Your choice survives a
 restart. Vertical bars have their own stacked formats.
 
-![Clock spectrum and format cycling](docs/media/clock.gif)
+https://github.com/user-attachments/assets/b215cc3f-8f9e-4f32-93d4-2a9233b81d0c
 
-[Watch the MP4 recording](docs/media/clock.mp4)
+[Download MP4](docs/media/clock.mp4)
 
 The clock recording uses controlled demo band levels to make the renderer and
 format changes visible. Normal use reads real audio through CAVA.
@@ -83,9 +83,9 @@ The player supports previous, play/pause, next, per-app volume, and seeking.
 Unavailable controls are disabled. The source selector distinguishes media
 sources and hides duplicate browser aggregates when their URLs match.
 
-![Calendar navigation and capability-aware playback controls](docs/media/playback.gif)
+https://github.com/user-attachments/assets/92f49fe3-bd55-46fb-9ef4-cc238e360e8a
 
-[Watch the MP4 recording](docs/media/playback.mp4)
+[Download MP4](docs/media/playback.mp4)
 
 ### Spotify likes that stay liked
 
@@ -96,13 +96,13 @@ the track identity and waits for Spotify to confirm the save.
 Ads, episodes, local files, and unsupported content have no Spotify heart.
 The optional Spicetify extension uses Spotify's existing login.
 
-![The heart changes after Spotify confirms the save](docs/media/spotify-like.gif)
+https://github.com/user-attachments/assets/1594693b-9200-4a16-99eb-93acf52222f7
 
 | Not saved | Already in Liked Songs |
 |---|---|
 | ![Outline heart](docs/media/spotify-unliked.png) | ![Filled heart](docs/media/spotify-liked.png) |
 
-[Watch the MP4 recording](docs/media/spotify-like.mp4) ·
+[Download MP4](docs/media/spotify-like.mp4) ·
 [Enable the Spotify heart](docs/setup.md#spotify-heart)
 
 The side menu exposes supported shuffle and repeat, plus an action to open the
@@ -140,18 +140,20 @@ The location is shared with Omarchy's weather settings.
 
 ![Paris search results with region and country](docs/media/location.png)
 
-[Watch the location-picker recording](docs/media/location.mp4)
+https://github.com/user-attachments/assets/ab332d27-e6b2-4202-a530-0df5b5975a0f
+
+[Download MP4](docs/media/location.mp4)
 
 ### Simple switches, immediate results
 
 The gear beside the month arrows opens a scrolling settings pane. The music
 card stays visible so you can see what each switch changes.
 
-![Settings alongside the live player](docs/media/settings.gif)
+https://github.com/user-attachments/assets/a168e272-7115-4d42-8510-c5513a583a75
 
 ![Appearance and weather settings](docs/media/settings.png)
 
-[Watch the MP4 recording](docs/media/settings.mp4)
+[Download MP4](docs/media/settings.mp4)
 
 The switches control dynamic music cover colors, dots, waves, and the clock
 visualizer. Weather units and location are here too. Reset appearance restores
