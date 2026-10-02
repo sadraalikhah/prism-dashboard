@@ -1,366 +1,76 @@
-# Asked Dashboard
+# Prism Dashboard
 
-An Omarchy Shell bar widget that extends the centered clock with a three-view
-dashboard. The bar displays the day and time; clicking it opens the Overview,
-Media, and Weather views.
+**Your music sets the mood of your desktop.**
 
-![Asked Dashboard preview](https://raw.githubusercontent.com/cucu0628/omarchy-dashboard/12078f1/preview.png)
+Album artwork colors the player, the controls, and the clock. Dots drift across
+its cover, soft waves flow behind it, and a liquid bubble chases your cursor.
+Open the clock to bring your music, calendar, and local weather into one panel.
 
-## Features
+![Prism Dashboard with Poison Girl by HIM and Paris weather](docs/media/overview.png)
 
-### Top Bar
+## See it move
 
-- Configurable day and time format.
-- Stacked clock rendering for left and right vertical bars.
-- Open or close the dashboard with a left click.
-- Uses the active Omarchy theme colors, font, spacing, and borders.
-- Only one widget instance can be placed on the bar.
+![Artwork colors changing across the music card](docs/media/dynamic-colors.gif)
 
-### Overview
+- **Colors from your cover.** Artwork sets the accent and the diagonal glow.
+  The clock and player share the same palette, so they change together.
+- **Motion you can feel.** Drifting dots, soft waves, and a spring-driven hover
+  bubble with a trailing tail. Animations stop when playback pauses.
+- **A clock that listens.** A CAVA spectrum reacts to your audio output behind
+  the time. Right-click to cycle clock formats.
+- **Controls for what is playing.** Spotify Liked Songs, supported shuffle and
+  repeat, podcast skips, and links back to browser media.
+- **Weather where you choose.** City search with region and country, current
+  conditions, feels-like temperature, daily highs and lows, and upcoming hours.
+- **Simple settings.** Switch cover colors, dots, waves, and the clock visualizer
+  on or off. Choose weather units and location. Changes save immediately.
 
-- Monthly calendar with Monday as the first day of the week.
-- Previous and next month controls.
-- Highlight for the current day.
-- Cover art, title, and artist from the active MPRIS source.
-- Previous, play/pause, and next controls.
-- Continuously updated, seekable playback progress bar.
-- CPU, memory, and root disk usage.
+[Explore every feature with screenshots and recordings](docs/features.md)
 
-### Media
+## Install
 
-- Large cover art and detailed media metadata.
-- Previous, play/pause, and next controls.
-- MPRIS playback position updated every 500 ms.
-- Current and total playback time.
-- Seekable playback progress bar.
-- Per-player MPRIS volume control for the selected media source.
-- Source selector when multiple MPRIS players are available.
-- Filters the `playerctld` proxy to avoid duplicate sources.
+Prism runs inside the current Omarchy Shell. It needs Quickshell, `curl`, and an
+Omarchy font with Nerd Font icons. The compiled shaders are included.
 
-### Weather
-
-- Current temperature and weather icon.
-- Apparent temperature, wind speed, and humidity.
-- Five-day forecast with minimum and maximum temperatures.
-- Uses the existing Omarchy weather location setting.
-- Fetches data from the Open-Meteo API.
-
-## Requirements
-
-- Omarchy 4 or newer with the current Omarchy Shell plugin API.
-- Quickshell with MPRIS support.
-- `bash`, `curl`, `awk`, `df`, and the Linux `/proc` filesystem.
-- An internet connection for weather data.
-- An Omarchy Nerd Font-compatible font for icons.
-
-This plugin is Linux- and Omarchy-specific. It cannot be used unchanged in an
-unrelated Quickshell configuration because it depends on Omarchy's `qs.Commons`
-and `qs.Ui` components.
-
-## Installation
-
-### From a Git Repository
+From this checkout:
 
 ```bash
-omarchy plugin add https://github.com/cucu0628/omarchy-dashboard.git --enable --yes
-```
-
-Omarchy clones the repository into:
-
-```text
-~/.config/omarchy/plugins/cucu0628.dashboard/
-```
-
-### Manual Installation
-
-Place the complete plugin directory at:
-
-```text
-~/.config/omarchy/plugins/cucu0628.dashboard/
-```
-
-Then rescan and enable it:
-
-```bash
+plugin="$HOME/.config/omarchy/plugins/cucu0628.dashboard"
+mkdir -p "$plugin"
+cp -- *.qml *.js *.py manifest.json *.frag *.qsb LICENSE README.md preview.png "$plugin/"
+cp -R docs "$plugin/"
 omarchy-shell shell rescanPlugins
-omarchy plugin enable cucu0628.dashboard
+omarchy plugin enable cucu0628.dashboard --section center
 ```
 
-Verify the installation with:
+This edition retains `cucu0628.dashboard` so existing placement and preferences
+continue to work. It replaces an existing installation with that ID. Back up
+your existing plugin before copying if you want to keep both versions.
 
-```bash
-omarchy-shell shell listPlugins
-```
+CAVA is optional for the audio spectrum. The Spotify heart additionally needs
+Spicetify, Python, PyGObject, and Soup 3. Playback and weather work without those
+optional integrations.
 
-The `cucu0628.dashboard` entry should have `enabled` set to `true`.
+[Setup, Spotify installation, preferences, and troubleshooting](docs/setup.md)
 
-## Top Bar Configuration
+## Use it
 
-The default section is `center`. To replace the stock clock, replace the
-`omarchy.clock` entry in the center layout of
-`~/.config/omarchy/shell.json` with:
+Click the clock to open Prism. Right-click it to change the format. Use the
+month arrows for the calendar and the map pin for your weather location. The
+player's source selector appears when several media sources are available.
+The gear opens settings. Escape closes the panel.
 
-```json
-{
-  "id": "cucu0628.dashboard",
-  "format": "dddd HH:mm"
-}
-```
+## Built on Omarchy
 
-Set `centerAnchor` to the dashboard as well:
+Prism Dashboard is Sadra Alikhah's edition of
+[cucu0628's Omarchy Dashboard](https://github.com/cucu0628/omarchy-dashboard).
+It uses Omarchy's own typography, borders, and theme colors. Turn dynamic cover
+colors off to use your desktop accent throughout the player and clock.
 
-```json
-"centerAnchor": "cucu0628.dashboard"
-```
+The source is [MIT licensed](LICENSE). Weather comes from
+[Open-Meteo](https://open-meteo.com/), and location search uses
+[Photon](https://github.com/komoot/photon) and
+[OpenStreetMap contributors](https://www.openstreetmap.org/copyright).
+See [data and capture credits](docs/credits.md).
 
-Do not replace your entire `shell.json` with a short example. That file may
-also contain the rest of your bar layout, idle timers, and other plugins.
-
-The Shell normally reloads configuration changes automatically. If it does
-not, run:
-
-```bash
-omarchy restart shell
-```
-
-## Clock Format
-
-The `format` setting accepts a Qt date and time format.
-
-| Setting | Example |
-|---|---|
-| `dddd HH:mm` | `Saturday 12:30` |
-| `ddd HH:mm` | `Sat 12:30` |
-| `HH:mm` | `12:30` |
-| `yyyy-MM-dd HH:mm` | `2026-08-15 12:30` |
-
-For a vertical bar, use `verticalFormat`. The default value renders the hour,
-a separator, and the minutes as three stacked bar slots:
-
-```json
-"verticalFormat": "HH\n—\nmm"
-```
-
-## Usage
-
-- Click the clock on the top bar to open or close the dashboard.
-- Use the `OVERVIEW`, `MEDIA`, and `WEATHER` tabs to switch views.
-- Use the calendar arrows to change the displayed month.
-- Click or drag a playback progress bar to seek.
-- The volume bar controls the selected MPRIS player's own volume.
-- When multiple players are active, source buttons appear at the top of the
-  Media view.
-- Press `Escape` to close the panel.
-
-The playback progress bar is enabled only when the selected MPRIS player
-supports seeking and reports the total media length. Some live streams do not
-provide these capabilities.
-
-## IPC
-
-The dashboard can also be controlled directly:
-
-```bash
-omarchy-shell cucu0628.dashboard open
-omarchy-shell cucu0628.dashboard close
-omarchy-shell cucu0628.dashboard toggle
-```
-
-These commands can be used from scripts or Hyprland keybindings.
-
-## Weather Location
-
-The plugin reads the existing Omarchy weather state file:
-
-```text
-~/.local/state/omarchy/settings/weather.json
-```
-
-Expected format:
-
-```json
-{
-  "name": "Veszprem",
-  "latitude": 47.09327,
-  "longitude": 17.91149
-}
-```
-
-Use the Omarchy weather location tool instead of editing the file manually:
-
-```bash
-omarchy-weather-location --set "Budapest"
-```
-
-Weather data refreshes every 15 minutes. The plugin uses this Open-Meteo
-endpoint:
-
-```text
-https://api.open-meteo.com/v1/forecast
-```
-
-## Data Sources
-
-| Data | Source |
-|---|---|
-| Date and time | Quickshell `SystemClock` |
-| Media | `Quickshell.Services.Mpris` |
-| Application volume | Selected MPRIS player's `volume` property |
-| CPU | `/proc/stat` |
-| Memory | `/proc/meminfo` |
-| Disk | `df -P /` |
-| Weather | Open-Meteo HTTPS API |
-
-System statistics refresh every three seconds while the panel is open.
-
-## File Structure
-
-```text
-cucu0628.dashboard/
-├── manifest.json   # Omarchy plugin metadata and widget settings
-├── BarWidget.qml   # Top-bar clock, click handling, and IPC entry point
-├── Panel.qml       # Dashboard UI, services, and data collection
-├── Model.js        # Calendar and weather helper functions
-├── preview.png     # Marketplace and README preview image
-├── LICENSE         # MIT license
-└── README.md       # Documentation
-```
-
-## Theming
-
-The plugin does not define a fixed color palette. It uses the following shared
-Omarchy values:
-
-- `Color.background`, `Color.foreground`, and `Color.accent`
-- `Color.popups`
-- `Style.font`
-- `Style.spacing`
-- `Style.cornerRadius`
-- `Border.controlSpec`
-
-As a result, Omarchy theme, font, and scaling changes are reflected in the
-dashboard automatically.
-
-## Permissions and Privacy
-
-Omarchy Shell plugins are not sandboxed. Their QML code runs inside the
-`omarchy-shell` process. Always review a plugin before installing it.
-
-This plugin:
-
-- reads local system statistics;
-- controls MPRIS players owned by the current user;
-- changes the selected MPRIS player's own volume;
-- sends the configured weather coordinates to Open-Meteo;
-- does not request elevated privileges;
-- does not maintain its own database or history file.
-
-## Troubleshooting
-
-### The Plugin Does Not Appear
-
-```bash
-omarchy-shell shell rescanPlugins
-omarchy plugin enable cucu0628.dashboard
-omarchy restart shell
-```
-
-Ensure that both the directory name and the manifest ID are
-`cucu0628.dashboard`.
-
-### The Panel Does Not Open
-
-```bash
-omarchy-shell cucu0628.dashboard open
-quickshell log --pid "$(pgrep -n quickshell)" --tail 100 --no-color
-```
-
-### No Media Information Is Shown
-
-Check whether the player exports an MPRIS service:
-
-```bash
-busctl --user list --no-pager
-```
-
-The output should contain a service named `org.mpris.MediaPlayer2.*`.
-
-### Seeking Is Disabled
-
-The selected player or content probably does not support the MPRIS seek
-operation. This is common for live streams and media with an unknown length.
-
-### Volume Control Does Not Work
-
-Confirm that the selected player exports the MPRIS `volume` property. The
-slider is disabled when the application does not support MPRIS volume control.
-
-### Weather Is Missing
-
-- Check the `weather.json` state file.
-- Check your internet connection.
-- Configure the location again with `omarchy-weather-location`.
-- Previously loaded weather data remains visible if a refresh fails
-  temporarily.
-
-## Development
-
-Changes under `~/.config/omarchy/plugins/cucu0628.dashboard/` are normally
-detected automatically by Omarchy Shell. To rescan manually:
-
-```bash
-omarchy-shell shell rescanPlugins
-```
-
-For a clean restart:
-
-```bash
-omarchy restart shell
-```
-
-Basic JSON and JavaScript validation:
-
-```bash
-jq empty manifest.json
-node --check Model.js
-```
-
-Check runtime QML errors with:
-
-```bash
-quickshell log --pid "$(pgrep -n quickshell)" --tail 150 --no-color
-```
-
-## Updating
-
-To update a Git-managed installation:
-
-```bash
-omarchy plugin update cucu0628.dashboard --yes
-```
-
-If necessary, restart the Shell afterward:
-
-```bash
-omarchy restart shell
-```
-
-## Removal
-
-For an Omarchy-managed installation:
-
-```bash
-omarchy plugin remove cucu0628.dashboard
-```
-
-If the dashboard replaced the stock clock, restore the `omarchy.clock` entry
-and set:
-
-```json
-"centerAnchor": "omarchy.clock"
-```
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for the
-full license text.
+[Development and checks](docs/development.md) · [Changes](CHANGELOG.md)

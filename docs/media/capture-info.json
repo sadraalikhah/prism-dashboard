@@ -1,0 +1,40 @@
+{
+  "source": "Frame recordings of the real Prism Dashboard QML scene in a Quickshell desktop session",
+  "metadata": "Private MPRIS fixtures for Poison Girl by HIM, Razorblade Romance artwork, Paris-only Open-Meteo/Photon responses",
+  "audio": "No audio recorded. Clock clip uses deterministic demo band levels in the real clock renderer; production uses CAVA and PipeWire.",
+  "clockSpectrum": {
+    "active": true,
+    "available": true,
+    "running": false,
+    "failed": false,
+    "error": "",
+    "frames": 6,
+    "levels": [
+      0.6189631704518452,
+      0.4597539742204301,
+      0.2767145721667448,
+      0.12672596675780726,
+      0.05,
+      0.05195684585069513,
+      0.11396843938012022,
+      0.19279320541687733,
+      0.2444134030193098,
+      0.24115593523657608,
+      0.18307781634550946,
+      0.09809309824709996,
+      0.05,
+      0.05,
+      0.10117595155741477,
+      0.25395255463990796,
+      0.44361559008807394,
+      0.6126972762293285,
+      0.7047896595460093,
+      0.6847047010965738,
+      0.5516891005634009,
+      0.3407598180941292
+    ],
+    "opacity": 0.48
+  },
+  "fps": 15,
+  "loopPreviewFps": 10
+}

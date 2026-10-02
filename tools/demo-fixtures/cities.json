@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Paris",
+    "description": "Île-de-France, France",
+    "label": "Paris, Île-de-France, France",
+    "latitude": 48.8534951,
+    "longitude": 2.3483915,
+    "timezone": ""
+  },
+  {
+    "name": "Paris",
+    "description": "Île-de-France, France",
+    "label": "Paris, Île-de-France, France",
+    "latitude": 48.8588897,
+    "longitude": 2.320041,
+    "timezone": ""
+  },
+  {
+    "name": "Le Touquet-Paris-Plage",
+    "description": "Hauts-de-France, France",
+    "label": "Le Touquet-Paris-Plage, Hauts-de-France, France",
+    "latitude": 50.5200083,
+    "longitude": 1.5864532,
+    "timezone": ""
+  },
+  {
+    "name": "Paris 14e Arrondissement",
+    "description": "Île-de-France, France",
+    "label": "Paris 14e Arrondissement, Île-de-France, France",
+    "latitude": 48.8295585,
+    "longitude": 2.323974,
+    "timezone": ""
+  },
+  {
+    "name": "Paris-l'Hôpital",
+    "description": "Bourgogne-Franche-Comté, France",
+    "label": "Paris-l'Hôpital, Bourgogne-Franche-Comté, France",
+    "latitude": 46.9150284,
+    "longitude": 4.6330226,
+    "timezone": ""
+  }
+]
