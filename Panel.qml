@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import Quickshell.Services.Mpris
 import qs.Commons
 import qs.Ui
@@ -14,18 +13,9 @@ Panel {
 
   property var anchorItem: null
   property var hostWidget: null
-  property int currentView: 0
   property date today: new Date()
   property int viewYear: today.getFullYear()
   property int viewMonth: today.getMonth()
-  property real cpuUsage: 0
-  property real memoryUsage: 0
-  property real diskUsage: 0
-  property var weather: null
-  property var forecast: []
-  property real latitude: NaN
-  property real longitude: NaN
-  property string weatherLocation: ""
   property real sampledPosition: 0
   property string selectedPlayerKey: ""
 
@@ -40,6 +30,18 @@ Panel {
       if (candidate && String(candidate.dbusName || "").toLowerCase().indexOf("playerctld") === -1)
         direct.push(candidate)
     }
+    // Per-tab MPRIS bridges (browser-mpris2) expose every media tab as its own
+    // player. When those are active, the browsers' own merged players — zen/
+    // firefox native and the plasma bridge — only duplicate one of those tabs,
+    // so hide them.
+    var hasPerTab = direct.some(function(p) {
+      return /^org\.mpris\.MediaPlayer2\.chrome(\.tab\d+)?$/.test(String(p.dbusName || ""))
+    })
+    if (hasPerTab) {
+      direct = direct.filter(function(p) {
+        return !/^org\.mpris\.MediaPlayer2\.(firefox|plasma-browser-integration)/.test(String(p.dbusName || ""))
+      })
+    }
     return direct.length > 0 ? direct : players
   }
   readonly property var player: {
@@ -50,31 +52,99 @@ Panel {
     return sourcePlayers.length > 0 ? sourcePlayers[0] : null
   }
   readonly property var sourceOptions: {
-    var options = []
+    // Instances of one app (see playerBaseKey) would otherwise render as
+    // identical "Zen / Zen" entries. Track how many instances each app has so
+    // the labels below can be disambiguated.
+    var counts = {}
+    var titleSets = {}
     for (var i = 0; i < sourcePlayers.length; i++) {
       var source = sourcePlayers[i]
-      options.push({ value: playerKey(source), label: playerLabel(source) })
+      var key = playerBaseKey(source)
+      counts[key] = (counts[key] || 0) + 1
+      if (titleSets[key] === undefined) titleSets[key] = []
+      titleSets[key].push(String(source.trackTitle || "").trim())
+    }
+
+    var options = []
+    var indexes = {}
+    for (var j = 0; j < sourcePlayers.length; j++) {
+      var player = sourcePlayers[j]
+      var baseKey = playerBaseKey(player)
+      var nth = indexes[baseKey] = (indexes[baseKey] || 0) + 1
+      var label = playerLabel(player)
+      var title = String(player.trackTitle || "").trim()
+      if (counts[baseKey] > 1) {
+        var titles = titleSets[baseKey]
+        var titlesUsable = true
+        for (var k = 0; k < titles.length; k++) {
+          if (titles[k] === "" || titles.indexOf(titles[k]) !== k) { titlesUsable = false; break }
+        }
+        // Several instances of this app: prefer the track title — it tells
+        // which instance is playing what. When titles are missing or collide,
+        // number the instances instead.
+        if (titlesUsable) label += " — " + title
+        else label += " #" + nth
+      } else if (sourcePlayers.length > 1 && title !== "") {
+        // Browsers expose ONE MPRIS player for all their tabs and just swap
+        // its metadata to whichever tab is currently dominant, so two playing
+        // tabs still show up here as a single entry. Surface the live track
+        // title so it's obvious which media this entry points at.
+        label += " — " + title
+      }
+      options.push({ value: playerKey(player), label: label })
     }
     return options
   }
   readonly property real appVolume: player && player.volumeSupported ? player.volume : 0
-  readonly property bool seekAvailable: player && player.canSeek && player.positionSupported
-    && player.lengthSupported && player.length > 0
-  readonly property real trackPosition: seekAvailable ? Math.max(0, Math.min(sampledPosition, player.length)) : 0
-  readonly property real trackLength: seekAvailable ? player.length : 1
+  readonly property string trackIdentity: playerKey(player) + "|"
+    + (player ? String(player.trackTitle || "") + "|" + String(player.trackArtist || "")
+      + "|" + String(player.trackAlbum || "") + "|" + String(player.trackArtUrl || "") : "")
+  // Length is latched below: browser MPRIS (Zen/Firefox) briefly reports zero
+  // length mid-seek, which used to disable the slider mid-drag and corrupt its
+  // range. A stale value is only replaced by a positive one.
+  property real cachedLength: 0
+  readonly property real trackLength: player && player.lengthSupported && player.length > 0 ? player.length : cachedLength
+  readonly property bool seekAvailable: player && player.canSeek && player.positionSupported && trackLength > 0
+  readonly property real trackPosition: seekAvailable ? Math.max(0, Math.min(sampledPosition, trackLength)) : 0
   readonly property var calendarCells: Model.monthCells(viewYear, viewMonth, today)
+  readonly property url coverArt: {
+    var activePlayer = root.player
+    if (!activePlayer) return ""
+    if (activePlayer.trackArtUrl) return activePlayer.trackArtUrl
 
-  onPlayerChanged: Qt.callLater(function() {
+    var metadata = activePlayer.metadata || ({})
+    var mediaUrl = String(metadata["xesam:url"] || "")
+    var match = mediaUrl.match(/(?:[?&]v=|youtu\.be\/|youtube\.com\/(?:shorts|embed)\/)([A-Za-z0-9_-]{11})/)
+    return match ? "https://i.ytimg.com/vi/" + match[1] + "/hqdefault.jpg" : ""
+  }
+  readonly property color playerInk: Qt.rgba(1, 1, 1, 0.97)
+  readonly property color playerInkMuted: Qt.rgba(1, 1, 1, 0.82)
+  // Album-derived control accent (extracted with the background palette —
+  // see CoverStage.qml / Palette.js). Contrast-guaranteed against the
+  // ambient background the controls sit on.
+  readonly property color playerAccent: coverStage.accent
+  readonly property color playerMetadataInk: playerInk
+  // Localized dark overlay behind text: the near-black variant of the
+  // album-derived base.
+  function scrim(alpha) {
+    return Qt.rgba(coverStage.deep.r, coverStage.deep.g, coverStage.deep.b, alpha)
+  }
+
+  onTrackIdentityChanged: {
+    root.cachedLength = root.player && root.player.lengthSupported && root.player.length > 0
+      ? root.player.length : 0
     root.sampledPosition = root.player && root.player.positionSupported ? root.player.position : 0
-  })
+    seekSettle.stop()
+  }
 
   function open() {
     today = new Date()
     viewYear = today.getFullYear()
     viewMonth = today.getMonth()
-    refreshSystem()
-    weatherFile.reload()
     controller.show()
+    // The cover may have loaded while the panel was closed — its palette
+    // could not be sampled before the content reached the scene graph.
+    coverStage.wake()
   }
 
   function close() { controller.hide() }
@@ -90,10 +160,6 @@ Panel {
     var next = Model.stepMonth(viewYear, viewMonth, delta)
     viewYear = next.year
     viewMonth = next.month
-  }
-
-  function refreshSystem() {
-    if (!systemProcess.running) systemProcess.running = true
   }
 
   function mediaAction(action) {
@@ -112,11 +178,21 @@ Panel {
     return String(source.dbusName || source.desktopEntry || source.identity || "")
   }
 
+  // One app can expose several MPRIS instances (two browser windows playing
+  // videos, several mpv processes). They share identity/desktopEntry but each
+  // registers its own bus name with an ".instance" suffix, so strip that to
+  // group instances of the same app together. Also handle ".tab<N>" suffixes,
+  // which per-tab MPRIS bridges (browser-mpris2) append per media tab.
+  function playerBaseKey(source) {
+    if (!source) return ""
+    var name = String(source.dbusName || "")
+    if (name !== "") return name.split(".instance")[0].replace(/\.tab\d+$/, "")
+    return String(source.desktopEntry || source.identity || "")
+  }
+
   function playerLabel(source) {
     if (!source) return "Media source"
-    var identity = String(source.identity || source.desktopEntry || "Media source")
-    var title = String(source.trackTitle || "")
-    return title && title !== identity ? identity + " - " + title : identity
+    return String(source.identity || source.desktopEntry || "Media source")
   }
 
   function selectPlayer(key) {
@@ -125,8 +201,15 @@ Panel {
 
   function seekTo(value) {
     if (!seekAvailable || !player) return
-    sampledPosition = Math.max(0, Math.min(Number(value), player.length))
-    player.position = sampledPosition
+    // Clamp against trackLength (the latched length), not player.length:
+    // quickshell's length getter falls back to the *current position* when a
+    // player doesn't expose mpris:length, which used to clamp every forward
+    // seek back down to where playback already was.
+    var target = Math.max(0, Math.min(Number(value), trackLength))
+    if (!isFinite(target)) return
+    sampledPosition = target
+    player.position = target
+    seekSettle.restart()
   }
 
   function setAppVolume(value) {
@@ -139,26 +222,6 @@ Panel {
     var minutes = Math.floor(value / 60)
     var remainder = value % 60
     return minutes + ":" + (remainder < 10 ? "0" : "") + remainder
-  }
-
-  function loadWeather() {
-    if (isNaN(latitude) || isNaN(longitude) || weatherProcess.running) return
-    var url = "https://api.open-meteo.com/v1/forecast?latitude=" + encodeURIComponent(latitude)
-      + "&longitude=" + encodeURIComponent(longitude)
-      + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day"
-      + "&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto"
-    weatherProcess.command = ["curl", "-fsS", "--max-time", "8", url]
-    weatherProcess.running = true
-  }
-
-  function parseWeatherLocation(raw) {
-    try {
-      var data = JSON.parse(String(raw || "{}"))
-      latitude = Number(data.latitude)
-      longitude = Number(data.longitude)
-      weatherLocation = String(data.name || "")
-      loadWeather()
-    } catch (e) {}
   }
 
   component LabelText: Text {
@@ -180,127 +243,26 @@ Panel {
     padding: Style.space(14)
   }
 
-  component SystemMetric: Item {
-    property string label: ""
-    property string icon: ""
-    property real value: 0
-    width: Style.space(210)
-    height: Style.space(58)
-
-    Row {
-      anchors.left: parent.left
-      anchors.right: parent.right
-      topPadding: Style.space(2)
-      spacing: Style.space(7)
-      OpticalGlyph {
-        width: Style.space(18)
-        height: Style.space(18)
-        anchors.verticalCenter: parent.verticalCenter
-        text: icon
-        color: root.foreground
-        fontFamily: root.fontFamily
-        fontSize: Style.font.title
-      }
-      MutedText { anchors.verticalCenter: parent.verticalCenter; text: label; font.letterSpacing: 1; font.bold: true }
-      LabelText {
-        anchors.verticalCenter: parent.verticalCenter
-        width: parent.width - Style.space(80)
-        horizontalAlignment: Text.AlignRight
-        text: Math.round(value) + "%"
-        font.pixelSize: Style.font.title
-        font.bold: true
-      }
-    }
-
-    Rectangle {
-      anchors.left: parent.left
-      anchors.right: parent.right
-      anchors.bottom: parent.bottom
-      height: Style.space(7)
-      radius: Style.cornerRadius > 0 ? height / 2 : 0
-      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
-      Rectangle {
-        width: parent.width * Math.max(0, Math.min(1, value / 100))
-        height: parent.height
-        radius: parent.radius
-        color: Style.selectedStateColor(root.foreground, Color.accent)
-        Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
-      }
-    }
-  }
-
-  FileView {
-    id: weatherFile
-    path: Quickshell.env("HOME") + "/.local/state/omarchy/settings/weather.json"
-    watchChanges: true
-    printErrors: false
-    onLoaded: root.parseWeatherLocation(text())
-    onFileChanged: reload()
-  }
-
-  Process {
-    id: systemProcess
-    command: ["bash", "-lc", "read _ u n s i w irq sirq st _ < /proc/stat; t1=$((u+n+s+i+w+irq+sirq+st)); z1=$((i+w)); sleep 0.25; read _ u n s i w irq sirq st _ < /proc/stat; t2=$((u+n+s+i+w+irq+sirq+st)); z2=$((i+w)); cpu=$((100*((t2-t1)-(z2-z1))/(t2-t1))); mem=$(awk '/MemTotal/{t=$2}/MemAvailable/{a=$2}END{printf \"%.0f\",100*(t-a)/t}' /proc/meminfo); disk=$(df -P / | awk 'NR==2{gsub(/%/,\"\",$5);print $5}'); printf '%s %s %s\\n' \"$cpu\" \"$mem\" \"$disk\""]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var values = String(text || "").trim().split(/\s+/)
-        if (values.length < 3) return
-        root.cpuUsage = Number(values[0])
-        root.memoryUsage = Number(values[1])
-        root.diskUsage = Number(values[2])
-      }
-    }
-  }
-
-  Process {
-    id: weatherProcess
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        try {
-          var data = JSON.parse(String(text || "{}"))
-          root.weather = data.current || null
-          var days = []
-          var daily = data.daily || {}
-          for (var i = 0; daily.time && i < daily.time.length; i++) {
-            days.push({
-              date: daily.time[i],
-              code: daily.weather_code[i],
-              high: Math.round(daily.temperature_2m_max[i]),
-              low: Math.round(daily.temperature_2m_min[i])
-            })
-          }
-          root.forecast = days
-        } catch (e) {}
-      }
-    }
-  }
-
   Timer {
-    interval: 3000
-    running: root.opened
-    repeat: true
-    triggeredOnStart: true
-    onTriggered: root.refreshSystem()
-  }
-
-  Timer {
-    interval: 500
-    running: root.opened && root.seekAvailable
-    repeat: true
-    triggeredOnStart: true
+    id: seekSettle
+    interval: 700
     onTriggered: {
-      if (!seekSlider.dragging && !overviewSeekSlider.dragging && root.player)
+      if (root.player && root.player.positionSupported)
         root.sampledPosition = root.player.position
     }
   }
 
   Timer {
-    interval: 15 * 60 * 1000
-    running: true
+    interval: 500
+    running: root.opened && root.player && root.player.positionSupported
     repeat: true
-    onTriggered: root.loadWeather()
+    triggeredOnStart: true
+    onTriggered: {
+      if (root.player && root.player.lengthSupported && root.player.length > 0)
+        root.cachedLength = root.player.length
+      if (!overviewSeekSlider.dragging && !seekSettle.running && root.player)
+        root.sampledPosition = root.player.position
+    }
   }
 
   SystemClock {
@@ -316,8 +278,12 @@ Panel {
     open: root.opened
     centerOnBar: true
     focusTarget: keyCatcher
-    contentWidth: dashboardPanel.fittedContentWidth(Style.space(760))
-    contentHeight: dashboardPanel.fittedContentHeight(Style.space(520))
+    // 690 = calendar (380) + gap (14) + player card (296) — the player card
+    // keeps its original width now that the calendar is narrower.
+    contentWidth: dashboardPanel.fittedContentWidth(Style.space(690))
+    // 452 = the player card height with the enlarged album art (was 411);
+    // the calendar card keeps its content and just gets more room.
+    contentHeight: dashboardPanel.fittedContentHeight(Style.space(452))
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -327,68 +293,22 @@ Panel {
 
       Column {
         anchors.fill: parent
-        spacing: Style.space(14)
-
-        Row {
-          id: tabs
-          width: parent.width
-          height: Style.space(34)
-          spacing: Style.space(8)
-
-          Repeater {
-            model: ["OVERVIEW", "MEDIA", "WEATHER"]
-            Rectangle {
-              required property string modelData
-              required property int index
-              width: (tabs.width - tabs.spacing * 2) / 3
-              height: tabs.height
-              radius: Style.cornerRadius
-              color: root.currentView === index
-                ? Style.selectedFillFor(root.foreground, Color.accent)
-                : (tabMouse.containsMouse ? Style.hoverFillFor(root.foreground, Color.accent) : "transparent")
-              border.width: root.currentView === index ? Style.spacing.hairline : 0
-              border.color: Style.selectedBorderFor(root.foreground, Color.accent)
-              LabelText {
-                anchors.centerIn: parent
-                text: modelData
-                font.pixelSize: Style.font.bodySmall
-                font.bold: root.currentView === index
-                font.letterSpacing: 1
-              }
-              MouseArea {
-                id: tabMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.currentView = index
-              }
-            }
-          }
-        }
-
-        Rectangle {
-          width: parent.width
-          height: Style.spacing.hairline
-          color: root.foreground
-          opacity: 0.12
-        }
 
         Item {
           width: parent.width
-          height: parent.height - tabs.height - Style.space(29)
+          height: parent.height
 
           Column {
-            visible: root.currentView === 0
             anchors.fill: parent
             spacing: Style.space(14)
 
             Row {
               width: parent.width
-              height: parent.height - Style.space(126)
+              height: parent.height
               spacing: Style.space(14)
 
               Card {
-                width: Style.space(450)
+                width: Style.space(380)
                 height: parent.height
 
                 Column {
@@ -478,313 +398,252 @@ Panel {
                 }
               }
 
-              Card {
-                width: parent.width - Style.space(464)
+              BorderSurface {
+                id: playerCard
+                width: parent.width - Style.space(394)
                 height: parent.height
-                Column {
-                  anchors.fill: parent
-                  anchors.margins: parent.contentLeftInset
-                  spacing: Style.space(8)
+                radius: Style.cornerRadius
+                padding: Style.space(14)
+                color: coverStage.base
+                borderSpec: Border.controlSpec("normal", root.foreground, Color.accent)
 
+                // Full-card artwork with cover-colored shading under the controls.
+                CoverStage {
+                  id: coverStage
+                  anchors.fill: parent
+                  anchors.topMargin: playerCard.borderTop
+                  anchors.bottomMargin: playerCard.borderBottom
+                  anchors.leftMargin: playerCard.borderLeft
+                  anchors.rightMargin: playerCard.borderRight
+                  radius: Math.max(0, Style.cornerRadius - playerCard.borderTop)
+                  coverUrl: root.coverArt
+                  hasTrack: !!root.player && !!(root.player.trackTitle || root.player.trackArtist || root.player.trackAlbum)
+                  playing: root.opened && !!root.player && root.player.isPlaying
+                  effectHost: auroraLayer
+                  artTopInset: playerCard.topPadding + Style.spacing.controlHeight + Style.space(4)
+                  artBottomInset: playerCard.bottomPadding + mediaBlock.height - Style.space(112)
+                }
+
+                // Localized dark overlays behind the header and the track
+                // block keep every label readable on any cover without
+                // dimming the artwork in between.
+                Rectangle {
+                  anchors.left: coverStage.left
+                  anchors.right: coverStage.right
+                  anchors.top: coverStage.top
+                  height: coverStage.artTopInset + Style.space(26)
+                  gradient: Gradient {
+                    GradientStop { position: 0.0; color: root.scrim(0.72) }
+                    GradientStop { position: 0.55; color: root.scrim(0.38) }
+                    GradientStop { position: 1.0; color: root.scrim(0) }
+                  }
+                }
+
+                Rectangle {
+                  anchors.left: coverStage.left
+                  anchors.right: coverStage.right
+                  anchors.bottom: coverStage.bottom
+                  height: mediaBlock.height + Style.space(80)
+                  gradient: Gradient {
+                    GradientStop { position: 0.0; color: root.scrim(0) }
+                    GradientStop { position: 0.25; color: root.scrim(0.58) }
+                    GradientStop { position: 0.65; color: root.scrim(0.82) }
+                    GradientStop { position: 1.0; color: root.scrim(0.9) }
+                  }
+                }
+
+                // Keep animated light above the text scrims but below controls.
+                Item {
+                  id: auroraLayer
+                  anchors.fill: coverStage
+                }
+
+                Item {
+                  width: parent.width
+                  height: Style.spacing.controlHeight
+                  anchors.top: parent.top
+                  anchors.left: parent.left
+                  anchors.right: parent.right
+                  anchors.topMargin: playerCard.contentTopInset
+                  anchors.leftMargin: playerCard.contentLeftInset
+                  anchors.rightMargin: playerCard.contentRightInset
                   MutedText {
-                    width: parent.width
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
                     text: "NOW PLAYING"
-                    horizontalAlignment: Text.AlignHCenter
+                    color: root.playerInk
                     font.letterSpacing: 1
                   }
+                  MediaDropdown {
+                    id: sourceDropdown
+                    visible: root.sourcePlayers.length > 1
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Style.space(140)
+                    showLabel: false
+                    value: root.playerKey(root.player)
+                    options: root.sourceOptions
+                    foreground: root.playerInk
+                    background: root.scrim(0.96)
+                    popupBorder: Qt.rgba(root.playerAccent.r, root.playerAccent.g, root.playerAccent.b, 0.4)
+                    accent: root.playerAccent
+                    fontFamily: root.fontFamily
+                    onChanged: function(value) { root.selectPlayer(value) }
+                  }
+                }
 
-                  BorderSurface {
-                    width: Style.space(118)
-                    height: Style.space(118)
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    radius: Style.cornerRadius
-                    color: Style.normalFillFor(root.foreground, Color.accent)
-                    borderSpec: Border.controlSpec("normal", root.foreground, Color.accent)
-                    Image {
-                      id: overviewAlbumArt
-                      anchors.fill: parent
-                      anchors.margins: Style.space(2)
-                      source: root.player && root.player.trackArtUrl ? root.player.trackArtUrl : ""
-                      fillMode: Image.PreserveAspectCrop
-                      visible: source !== ""
-                      asynchronous: true
+                Column {
+                  id: mediaBlock
+                  anchors.left: parent.left
+                  anchors.right: parent.right
+                  anchors.bottom: parent.bottom
+                  anchors.leftMargin: playerCard.contentLeftInset
+                  anchors.rightMargin: playerCard.contentRightInset
+                  anchors.bottomMargin: playerCard.contentBottomInset
+                  spacing: Style.space(10)
+
+                  Column {
+                    width: parent.width
+                    spacing: Style.space(4)
+                    LabelText {
+                      width: parent.width
+                      text: root.player ? (root.player.trackTitle || "Unknown title") : "Nothing playing"
+                      horizontalAlignment: Text.AlignHCenter
+                      color: root.playerMetadataInk
+                      font.pixelSize: Math.max(18, Style.font.heading)
+                      font.bold: true
+                      elide: Text.ElideRight
                     }
-                    LabelText { anchors.centerIn: parent; visible: !overviewAlbumArt.visible; text: "󰝚"; font.pixelSize: 42 }
+                    MutedText {
+                      width: parent.width
+                      text: root.player ? (root.player.trackArtist || root.player.identity || "") : "Start a media player"
+                      horizontalAlignment: Text.AlignHCenter
+                      color: root.playerMetadataInk
+                      font.pixelSize: Math.max(14, Style.font.subtitle)
+                      elide: Text.ElideRight
+                    }
                   }
-
-                  LabelText {
+                  Row {
                     width: parent.width
-                    text: root.player ? (root.player.trackTitle || "Unknown title") : "Nothing playing"
-                    horizontalAlignment: Text.AlignHCenter
-                    font.bold: true
-                    elide: Text.ElideRight
+                    spacing: Style.space(8)
+                    OpticalGlyph {
+                      width: Style.space(18)
+                      height: Style.space(18)
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: "󰕿"
+                      color: root.playerAccent
+                      fontFamily: root.fontFamily
+                      fontSize: Style.font.iconLarge
+                    }
+                    PanelSlider {
+                      id: volumeSlider
+                      width: parent.width - Style.space(52)
+                      bar: root.bar
+                      trackColor: Qt.rgba(1, 1, 1, 0.22)
+                      fillColor: root.playerAccent
+                      knobColor: root.playerAccent
+                      minimum: 0
+                      maximum: 1
+                      step: 0.05
+                      value: root.appVolume
+                      enabled: !!root.player && root.player.volumeSupported
+                      opacity: enabled ? 1 : 0.35
+                      onMoved: function(value) { root.setAppVolume(value) }
+                    }
+                    OpticalGlyph {
+                      width: Style.space(18)
+                      height: Style.space(18)
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: "󰕾"
+                      color: root.playerAccent
+                      fontFamily: root.fontFamily
+                      fontSize: Style.font.title
+                    }
                   }
-                  MutedText {
-                    width: parent.width
-                    text: root.player ? (root.player.trackArtist || root.player.identity || "") : "Start a media player"
-                    horizontalAlignment: Text.AlignHCenter
-                    elide: Text.ElideRight
+                  Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: Style.space(14)
+                    PanelActionButton {
+                      size: Style.space(36)
+                      anchors.verticalCenter: parent.verticalCenter
+                      fontSize: Style.font.icon
+                      iconText: "󰒮"
+                      foreground: root.playerInkMuted
+                      hoverColor: root.playerAccent
+                      fontFamily: root.fontFamily
+                      tooltipText: "Previous"
+                      enabled: root.player && root.player.canGoPrevious
+                      onClicked: root.mediaAction("previous")
+                    }
+                    PanelActionButton {
+                      size: Style.space(46)
+                      anchors.verticalCenter: parent.verticalCenter
+                      fontSize: Style.font.display
+                      iconText: root.player && root.player.isPlaying ? "󰏤" : "󰐊"
+                      foreground: root.playerAccent
+                      hoverColor: root.playerAccent
+                      fontFamily: root.fontFamily
+                      bordered: true
+                      tooltipText: root.player && root.player.isPlaying ? "Pause" : "Play"
+                      enabled: !!root.player
+                      onClicked: root.mediaAction("playPause")
+                    }
+                    PanelActionButton {
+                      size: Style.space(36)
+                      anchors.verticalCenter: parent.verticalCenter
+                      fontSize: Style.font.icon
+                      iconText: "󰒭"
+                      foreground: root.playerInkMuted
+                      hoverColor: root.playerAccent
+                      fontFamily: root.fontFamily
+                      tooltipText: "Next"
+                      enabled: root.player && root.player.canGoNext
+                      onClicked: root.mediaAction("next")
+                    }
                   }
                   Column {
                     width: parent.width
-                    spacing: Style.space(1)
-                    MutedText {
+                    spacing: Style.space(4)
+                    Item {
                       width: parent.width
-                      horizontalAlignment: Text.AlignRight
-                      text: root.seekAvailable
-                        ? root.formatDuration(overviewSeekSlider.dragging ? overviewSeekSlider.liveValue : root.trackPosition)
-                          + " / " + root.formatDuration(root.trackLength)
-                        : "--:-- / --:--"
-                      font.pixelSize: Style.font.caption
+                      height: Style.space(14)
+                      MutedText {
+                        anchors.left: parent.left
+                        text: root.seekAvailable ? root.formatDuration(overviewSeekSlider.dragging ? overviewSeekSlider.liveValue : root.trackPosition) : "--:--"
+                        color: root.playerInkMuted
+                        font.pixelSize: Math.max(12, Style.font.body)
+                      }
+                      MutedText {
+                        anchors.right: parent.right
+                        text: root.seekAvailable ? root.formatDuration(root.trackLength) : "--:--"
+                        color: root.playerInkMuted
+                        font.pixelSize: Math.max(12, Style.font.body)
+                      }
                     }
                     PanelSlider {
                       id: overviewSeekSlider
                       width: parent.width
                       bar: root.bar
+                      trackColor: Qt.rgba(1, 1, 1, 0.22)
+                      fillColor: root.playerAccent
+                      knobColor: root.playerAccent
                       minimum: 0
                       maximum: root.trackLength
                       step: 5
-                      knobSize: 0
                       value: root.trackPosition
-                      enabled: root.seekAvailable
+                      enabled: root.seekAvailable || dragging
                       opacity: enabled ? 1 : 0.35
-                      onReleased: function(value) { root.seekTo(value) }
-                    }
-                  }
-                  Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: Style.space(10)
-                    PanelActionButton { size: Style.space(34); fontSize: Style.font.icon; iconText: "󰒮"; foreground: root.foreground; fontFamily: root.fontFamily; enabled: root.player && root.player.canGoPrevious; onClicked: root.mediaAction("previous") }
-                    PanelActionButton { size: Style.space(34); fontSize: Style.font.iconLarge; iconText: root.player && root.player.isPlaying ? "󰏤" : "󰐊"; foreground: root.foreground; fontFamily: root.fontFamily; enabled: !!root.player; onClicked: root.mediaAction("playPause") }
-                    PanelActionButton { size: Style.space(34); fontSize: Style.font.icon; iconText: "󰒭"; foreground: root.foreground; fontFamily: root.fontFamily; enabled: root.player && root.player.canGoNext; onClicked: root.mediaAction("next") }
-                  }
-                }
-              }
-            }
-
-            Card {
-              width: parent.width
-              height: Style.space(112)
-              Column {
-                anchors.fill: parent
-                anchors.margins: parent.contentLeftInset
-                spacing: Style.space(8)
-                MutedText { text: "SYSTEM STATUS"; font.letterSpacing: 1 }
-                Row {
-                  width: parent.width
-                  spacing: Style.space(24)
-                  SystemMetric { width: (parent.width - parent.spacing * 2) / 3; label: "CPU"; icon: "󰍛"; value: root.cpuUsage }
-                  SystemMetric { width: (parent.width - parent.spacing * 2) / 3; label: "MEMORY"; icon: "󰘚"; value: root.memoryUsage }
-                  SystemMetric { width: (parent.width - parent.spacing * 2) / 3; label: "DISK"; icon: "󰋊"; value: root.diskUsage }
-                }
-              }
-            }
-          }
-
-          Item {
-            visible: root.currentView === 1
-            anchors.fill: parent
-            Column {
-              width: Math.min(parent.width, Style.space(560))
-              anchors.centerIn: parent
-              spacing: Style.space(10)
-              Column {
-                visible: root.sourcePlayers.length > 1
-                width: Math.min(parent.width, Style.space(430))
-                height: visible ? Style.space(44) : 0
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: Style.space(4)
-                MutedText {
-                  width: parent.width
-                  text: "SOURCE"
-                  font.pixelSize: Style.font.caption
-                  font.letterSpacing: 1
-                  horizontalAlignment: Text.AlignHCenter
-                }
-                Row {
-                  id: sourceSelector
-                  width: parent.width
-                  height: Style.spacing.controlHeight
-                  spacing: Style.space(5)
-                  Repeater {
-                    model: root.sourceOptions
-                    BorderSurface {
-                      id: sourceButton
-                      required property var modelData
-                      readonly property bool selected: root.playerKey(root.player) === String(modelData.value)
-                      width: (sourceSelector.width - sourceSelector.spacing * Math.max(0, root.sourceOptions.length - 1))
-                        / Math.max(1, root.sourceOptions.length)
-                      height: sourceSelector.height
-                      radius: Style.cornerRadius
-                      color: selected
-                        ? Style.selectedFillFor(root.foreground, Color.accent)
-                        : (sourceMouse.containsMouse ? Style.hoverFillFor(root.foreground, Color.accent) : Style.normalFillFor(root.foreground, Color.accent))
-                      borderSpec: Border.controlSpec(selected ? "selected" : (sourceMouse.containsMouse ? "hover-cursor" : "normal"), root.foreground, Color.accent)
-
-                      LabelText {
-                        anchors.fill: parent
-                        anchors.leftMargin: sourceButton.contentLeftInset + Style.space(8)
-                        anchors.rightMargin: sourceButton.contentRightInset + Style.space(8)
-                        text: sourceButton.modelData.label
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: Style.font.bodySmall
-                        font.bold: sourceButton.selected
-                        elide: Text.ElideRight
-                      }
-
-                      MouseArea {
-                        id: sourceMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.selectPlayer(sourceButton.modelData.value)
-                      }
-                    }
-                  }
-                }
-              }
-              BorderSurface {
-                width: Style.space(160)
-                height: Style.space(160)
-                anchors.horizontalCenter: parent.horizontalCenter
-                radius: Style.cornerRadius
-                color: Style.normalFillFor(root.foreground, Color.accent)
-                borderSpec: Border.controlSpec("normal", root.foreground, Color.accent)
-                Image { id: mediaAlbumArt; anchors.fill: parent; anchors.margins: Style.space(3); source: root.player && root.player.trackArtUrl ? root.player.trackArtUrl : ""; fillMode: Image.PreserveAspectCrop; visible: source !== ""; asynchronous: true }
-                LabelText { anchors.centerIn: parent; visible: !mediaAlbumArt.visible; text: "󰝚"; font.pixelSize: 56 }
-              }
-              Column {
-                width: parent.width
-                spacing: Style.space(4)
-                LabelText { width: parent.width; text: root.player ? (root.player.trackTitle || "Unknown title") : "Nothing playing"; horizontalAlignment: Text.AlignHCenter; font.pixelSize: Style.font.heading; font.bold: true; elide: Text.ElideRight }
-                MutedText { width: parent.width; text: root.player ? (root.player.trackArtist || root.player.identity || "") : "Start a media player"; horizontalAlignment: Text.AlignHCenter; font.pixelSize: Style.font.body; elide: Text.ElideRight }
-                MutedText { width: parent.width; text: root.player ? (root.player.trackAlbum || "") : ""; horizontalAlignment: Text.AlignHCenter; visible: text !== ""; elide: Text.ElideRight }
-              }
-              Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: Style.space(14)
-                PanelActionButton { size: Style.space(38); fontSize: Style.font.icon; iconText: "󰒮"; foreground: root.foreground; fontFamily: root.fontFamily; enabled: root.player && root.player.canGoPrevious; onClicked: root.mediaAction("previous") }
-                PanelActionButton { size: Style.space(38); fontSize: Style.font.display; iconText: root.player && root.player.isPlaying ? "󰏤" : "󰐊"; foreground: root.foreground; fontFamily: root.fontFamily; enabled: !!root.player; onClicked: root.mediaAction("playPause") }
-                PanelActionButton { size: Style.space(38); fontSize: Style.font.icon; iconText: "󰒭"; foreground: root.foreground; fontFamily: root.fontFamily; enabled: root.player && root.player.canGoNext; onClicked: root.mediaAction("next") }
-              }
-
-              Column {
-                width: parent.width
-                spacing: Style.space(2)
-                Row {
-                  width: parent.width
-                  MutedText { text: "POSITION"; font.pixelSize: Style.font.caption; font.letterSpacing: 1 }
-                  MutedText {
-                    width: parent.width - Style.space(70)
-                    horizontalAlignment: Text.AlignRight
-                    text: root.formatDuration(seekSlider.dragging ? seekSlider.liveValue : root.trackPosition)
-                      + " / " + root.formatDuration(root.seekAvailable ? root.trackLength : 0)
-                    font.pixelSize: Style.font.caption
-                  }
-                }
-                PanelSlider {
-                  id: seekSlider
-                  width: parent.width
-                  bar: root.bar
-                  minimum: 0
-                  maximum: root.trackLength
-                  step: 5
-                  knobSize: 0
-                  value: root.trackPosition
-                  enabled: root.seekAvailable
-                  opacity: enabled ? 1 : 0.35
-                  onReleased: function(value) { root.seekTo(value) }
-                }
-              }
-
-              Column {
-                width: parent.width
-                spacing: Style.space(2)
-                Row {
-                  width: parent.width
-                  MutedText { text: "APP VOLUME"; font.pixelSize: Style.font.caption; font.letterSpacing: 1 }
-                  MutedText {
-                    width: parent.width - Style.space(88)
-                    horizontalAlignment: Text.AlignRight
-                    text: Math.round((volumeSlider.dragging ? volumeSlider.liveValue : root.appVolume) * 100) + "%"
-                    font.pixelSize: Style.font.caption
-                  }
-                }
-                PanelSlider {
-                  id: volumeSlider
-                  width: parent.width
-                  bar: root.bar
-                  minimum: 0
-                  maximum: 1
-                  step: 0.05
-                  knobSize: 0
-                  value: root.appVolume
-                  enabled: !!root.player && root.player.volumeSupported
-                  opacity: enabled ? 1 : 0.35
-                  onMoved: function(value) { root.setAppVolume(value) }
-                }
-              }
-            }
-          }
-
-          Item {
-            visible: root.currentView === 2
-            anchors.fill: parent
-            Column {
-              width: Math.min(parent.width, Style.space(650))
-              anchors.centerIn: parent
-              spacing: Style.space(28)
-              Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: Style.space(28)
-                LabelText { text: root.weather ? Model.weatherIcon(root.weather.weather_code, root.weather.is_day) : "󰖐"; font.pixelSize: 86; anchors.verticalCenter: parent.verticalCenter }
-                Column {
-                  anchors.verticalCenter: parent.verticalCenter
-                  spacing: Style.space(5)
-                  LabelText { text: root.weather ? Math.round(root.weather.temperature_2m) + "°C" : "--°C"; font.pixelSize: 56; font.bold: true }
-                  MutedText { text: root.weatherLocation.toUpperCase(); font.letterSpacing: 1 }
-                }
-              }
-              Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: Style.space(56)
-                Column {
-                  spacing: Style.space(4)
-                  MutedText { text: "FEELS"; font.letterSpacing: 1 }
-                  LabelText { text: root.weather ? Math.round(root.weather.apparent_temperature) + "°C" : "--"; font.pixelSize: Style.font.title }
-                }
-                Column {
-                  spacing: Style.space(4)
-                  MutedText { text: "WIND"; font.letterSpacing: 1 }
-                  LabelText { text: root.weather ? Math.round(root.weather.wind_speed_10m) + " km/h" : "--"; font.pixelSize: Style.font.title }
-                }
-                Column {
-                  spacing: Style.space(4)
-                  MutedText { text: "HUMIDITY"; font.letterSpacing: 1 }
-                  LabelText { text: root.weather ? Math.round(root.weather.relative_humidity_2m) + "%" : "--"; font.pixelSize: Style.font.title }
-                }
-              }
-              Rectangle { width: parent.width; height: Style.spacing.hairline; color: root.foreground; opacity: 0.12 }
-              Row {
-                width: parent.width
-                spacing: Style.space(8)
-                Repeater {
-                  model: root.forecast
-                  Card {
-                    required property var modelData
-                    width: (parent.width - parent.spacing * Math.max(0, root.forecast.length - 1)) / Math.max(1, root.forecast.length)
-                    height: Style.space(135)
-                    Column {
-                      anchors.centerIn: parent
-                      spacing: Style.space(8)
-                      MutedText { anchors.horizontalCenter: parent.horizontalCenter; text: Model.dayLabel(modelData.date); font.letterSpacing: 1 }
-                      LabelText { anchors.horizontalCenter: parent.horizontalCenter; text: Model.weatherIcon(modelData.code, 1); font.pixelSize: Style.font.displayLarge }
-                      Row {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: Style.space(7)
-                        LabelText { text: modelData.high + "°"; font.bold: true }
-                        MutedText { text: modelData.low + "°" }
+                      // PanelSlider clears `dragging` before emitting `released`.
+                      // `value` depends on `dragging`, so the binding chain
+                      // re-evaluates synchronously and resets `liveValue` to the
+                      // pre-drag position before `released` fires — seeking with
+                      // its argument would snap straight back. Track the last
+                      // dragged value via `moved` and seek with that instead.
+                      property real dragValue: -1
+                      onMoved: function(value) { dragValue = value }
+                      onReleased: function(value) {
+                        root.seekTo(dragValue >= 0 ? dragValue : value)
+                        dragValue = -1
                       }
                     }
                   }

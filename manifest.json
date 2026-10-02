@@ -5,7 +5,7 @@
   "version": "1.2.0",
   "author": "cucu0628",
   "license": "MIT",
-  "description": "Clock with calendar, media, system and weather dashboard",
+  "description": "Clock with calendar, system, media player and weather dashboard",
   "kinds": [
     "bar-widget"
   ],
@@ -14,7 +14,7 @@
   },
   "barWidget": {
     "displayName": "Dashboard",
-    "description": "Clock with a three-view dashboard",
+    "description": "Clock with a two-view dashboard",
     "category": "Time",
     "allowMultiple": false,
     "defaultSection": "center",

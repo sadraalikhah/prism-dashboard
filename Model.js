@@ -29,21 +29,3 @@ function stepMonth(year, month, delta) {
   var date = new Date(year, month + delta, 1)
   return { year: date.getFullYear(), month: date.getMonth() }
 }
-
-function weatherIcon(code, isDay) {
-  var c = Number(code)
-  if (c === 0) return Number(isDay) === 0 ? "󰖔" : "󰖙"
-  if (c <= 2) return Number(isDay) === 0 ? "󰼱" : "󰖕"
-  if (c === 3) return "󰖐"
-  if (c === 45 || c === 48) return "󰖑"
-  if (c >= 51 && c <= 67) return "󰖗"
-  if ((c >= 71 && c <= 77) || c === 85 || c === 86) return "󰖘"
-  if (c >= 80 && c <= 82) return "󰖖"
-  if (c >= 95) return "󰙾"
-  return "󰖐"
-}
-
-function dayLabel(dateString) {
-  var date = new Date(String(dateString) + "T12:00:00")
-  return isNaN(date.getTime()) ? "" : Qt.formatDate(date, "ddd").toUpperCase()
-}
