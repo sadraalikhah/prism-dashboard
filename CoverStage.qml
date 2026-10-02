@@ -38,7 +38,8 @@ Item {
     onHoveredChanged: root.pointerStrength = hovered ? 1 : 0
   }
 
-  // An underdamped spring carries momentum past the cursor and settles back.
+  // A soft spring lets the bubble lag behind, accelerate to catch the cursor,
+  // and carry its momentum past the target before settling back.
   // Small substeps keep the spring stable after a dropped frame.
   function advanceBubble(frameTime) {
     var elapsed = Math.min(frameTime, 0.05)
@@ -48,11 +49,11 @@ Item {
     var vx = bubbleVelocity.x, vy = bubbleVelocity.y
     var tx = trailPosition.x, ty = trailPosition.y
     var ex = tailPosition.x, ey = tailPosition.y
-    var trailBlend = 1 - Math.exp(-14 * dt)
-    var tailBlend = 1 - Math.exp(-10 * dt)
+    var trailBlend = 1 - Math.exp(-10 * dt)
+    var tailBlend = 1 - Math.exp(-7 * dt)
     for (var i = 0; i < steps; i++) {
-      vx += ((pointerX - x) * 360 - vx * 20) * dt
-      vy += ((pointerY - y) * 360 - vy * 20) * dt
+      vx += ((pointerX - x) * 64 - vx * 9) * dt
+      vy += ((pointerY - y) * 64 - vy * 9) * dt
       x += vx * dt
       y += vy * dt
       tx += (x - tx) * trailBlend
