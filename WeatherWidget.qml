@@ -64,37 +64,39 @@ Item {
   }
 
   Item {
-    id: conditionsRow
+    id: conditionsBody
     anchors.top: header.bottom
-    anchors.topMargin: Style.space(2)
+    anchors.topMargin: Style.space(8)
+    anchors.bottom: footer.top
+    anchors.bottomMargin: Style.space(8)
     width: parent.width
-    height: Style.space(53)
     visible: !!root.current
-    OpticalGlyph {
-      id: weatherIcon
-      width: Style.space(45)
-      height: parent.height
-      text: root.conditions ? root.conditions.icon : ""
-      color: root.foreground
-      fontFamily: root.fontFamily
-      fontSize: Style.space(34)
-    }
-    Text {
-      id: temperature
-      anchors.left: weatherIcon.right
-      anchors.leftMargin: Style.space(6)
-      anchors.verticalCenter: parent.verticalCenter
-      text: root.current ? WeatherModel.temperature(root.current.temperature_2m) : ""
-      color: root.foreground
-      font.family: root.fontFamily
-      font.pixelSize: Style.space(34)
-    }
+
     Column {
-      anchors.left: temperature.right
-      anchors.leftMargin: Style.space(12)
-      anchors.right: parent.right
+      id: currentConditions
+      width: (parent.width - Style.space(24)) * 0.56
       anchors.verticalCenter: parent.verticalCenter
       spacing: Style.space(3)
+      Row {
+        width: parent.width
+        height: Style.space(44)
+        spacing: Style.space(8)
+        OpticalGlyph {
+          width: Style.space(42)
+          height: parent.height
+          text: root.conditions ? root.conditions.icon : ""
+          color: root.foreground
+          fontFamily: root.fontFamily
+          fontSize: Style.space(36)
+        }
+        Text {
+          anchors.verticalCenter: parent.verticalCenter
+          text: root.current ? WeatherModel.temperature(root.current.temperature_2m) : ""
+          color: root.foreground
+          font.family: root.fontFamily
+          font.pixelSize: Style.space(38)
+        }
+      }
       Text {
         width: parent.width
         text: root.conditions ? root.conditions.text : ""
@@ -113,44 +115,53 @@ Item {
         elide: Text.ElideRight
       }
     }
-  }
 
-  Row {
-    anchors.top: conditionsRow.bottom
-    anchors.topMargin: Style.space(4)
-    width: parent.width
-    height: Style.space(36)
-    visible: !!root.current
-    Repeater {
-      model: root.hours
-      Column {
-        required property var modelData
-        width: root.width / 3
-        spacing: Style.space(2)
-        Text {
+    Rectangle {
+      anchors.left: currentConditions.right
+      anchors.leftMargin: Style.space(12)
+      anchors.verticalCenter: parent.verticalCenter
+      width: Style.spacing.hairline
+      height: parent.height - Style.space(8)
+      color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.16)
+    }
+
+    Column {
+      anchors.left: currentConditions.right
+      anchors.leftMargin: Style.space(24)
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      spacing: Style.space(4)
+      Repeater {
+        model: root.hours
+        Item {
+          required property var modelData
           width: parent.width
-          text: modelData.time
-          horizontalAlignment: Text.AlignHCenter
-          color: root.muted
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-        }
-        Row {
-          anchors.horizontalCenter: parent.horizontalCenter
-          spacing: Style.space(5)
+          height: Style.space(24)
+          Text {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            text: modelData.time
+            color: root.muted
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
           OpticalGlyph {
-            width: Style.space(20)
-            height: Style.space(20)
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.horizontalCenterOffset: Style.space(6)
+            width: Style.space(24)
+            height: parent.height
             text: WeatherModel.conditions(modelData.code, modelData.night).icon
             fontFamily: root.fontFamily
-            fontSize: Style.font.iconLarge
+            fontSize: Style.space(22)
             color: root.foreground
           }
           Text {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
             text: WeatherModel.temperature(modelData.temperature)
             color: root.foreground
             font.family: root.fontFamily
-            font.pixelSize: Style.font.bodySmall
+            font.pixelSize: Style.font.body
           }
         }
       }
@@ -183,6 +194,7 @@ Item {
   }
 
   Text {
+    id: footer
     anchors.left: parent.left
     anchors.bottom: parent.bottom
     text: "Open-Meteo" + (root.service.stale ? " · Offline / last update " + Qt.formatTime(new Date(root.service.receivedAt), "HH:mm") : "")
