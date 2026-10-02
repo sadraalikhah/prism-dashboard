@@ -21,9 +21,16 @@
     "defaults": {
       "format": "dddd HH:mm",
       "verticalFormat": "HH\n\u2014\nmm",
-      "weatherUnit": "celsius"
+      "weatherUnit": "celsius",
+      "clockSpectrum": true
     },
     "schema": [
+      {
+        "key": "clockSpectrum",
+        "type": "boolean",
+        "label": "Audio spectrum behind clock",
+        "defaultValue": true
+      },
       {
         "key": "format",
         "type": "string",

@@ -82,7 +82,41 @@ BarWidget {
     function editWeather(): void { root.open(); if (panelLoader.item) panelLoader.item.editWeatherLocation() }
     function refreshWeather(): void { if (panelLoader.item) panelLoader.item.refreshWeather() }
     function musicStatus(): string { return panelLoader.item ? panelLoader.item.musicStatus() : "{}" }
+    function spectrumStatus(): string {
+      var state = JSON.parse(spectrum.status())
+      state.accent = String(spectrum.accent)
+      state.paletteKey = clockPalette.item ? clockPalette.item.sampledKey : ""
+      return JSON.stringify(state)
+    }
     function weatherStatus(): string { return panelLoader.item ? panelLoader.item.weatherStatus() : "{}" }
+  }
+
+  // Attach the existing artwork sampler to the bar's scene so colors are
+  // ready even before the dashboard's popup has been opened.
+  Loader {
+    id: clockPalette
+    visible: false
+    active: root.setting("clockSpectrum", true)
+    sourceComponent: Component {
+      CoverStage {
+        width: 32
+        height: 32
+        coverUrl: panelLoader.item ? panelLoader.item.coverArt : ""
+        hasTrack: !!panelLoader.item && !!panelLoader.item.player
+        playing: false
+      }
+    }
+  }
+
+  ClockSpectrum {
+    id: spectrum
+    anchors.fill: parent
+    anchors.leftMargin: 3
+    anchors.rightMargin: 3
+    active: root.setting("clockSpectrum", true) && root.visible && !!panelLoader.item
+      && !!panelLoader.item.player && panelLoader.item.player.isPlaying
+    accent: clockPalette.item ? clockPalette.item.accent : Color.accent
+    ink: button.foreground
   }
 
   WidgetButton {
