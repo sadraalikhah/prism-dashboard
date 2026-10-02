@@ -65,7 +65,9 @@ Item {
 
     Column {
       id: content
-      width: scroll.width - Style.space(12)
+      // Keep control borders clear of the Flickable clip at fractional display scales.
+      x: Style.space(2)
+      width: scroll.width - x - Style.space(12)
       spacing: Style.space(10)
 
       Repeater {
