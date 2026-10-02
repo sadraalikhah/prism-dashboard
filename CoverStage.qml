@@ -23,6 +23,7 @@ Item {
   property point trailPosition: bubblePosition
   property point tailPosition: bubblePosition
   property Item effectHost: null
+  property var paletteSource: null
 
   HoverHandler {
     onPointChanged: {
@@ -68,7 +69,8 @@ Item {
   }
 
   readonly property var fallbackPalette: Palette.themePalette(themeTokens())
-  property var palette: fallbackPalette
+  property var localPalette: fallbackPalette
+  readonly property var palette: paletteSource ? paletteSource.palette : localPalette
 
   readonly property color accent: colorOf(palette.accent)
   readonly property color metadataInk: colorOf(palette.text)
@@ -95,26 +97,28 @@ Item {
 
   // ------------------------------------------------------- palette cache
   property var paletteCache: ({})
-  readonly property bool samplerAvailable: sampler.available
-  property string sampledKey: ""
+  readonly property bool samplerAvailable: paletteSource ? paletteSource.samplerAvailable : sampler.available
+  property string localSampledKey: ""
+  readonly property string sampledKey: paletteSource ? paletteSource.sampledKey : localSampledKey
   property string samplerKey: ""
 
   // Read the decoded artwork directly; item textures may not upload while paused.
   function refreshPalette() {
+    if (paletteSource) return
     var key = root.hasTrack ? String(coverUrl || "") : ""
     if (sampler.available && key !== samplerKey) {
       if (samplerKey) sampler.unloadImage(samplerKey)
       samplerKey = key
     }
     if (!key || (String(coverImage.source) === key && coverImage.status === Image.Error)) {
-      palette = root.fallbackPalette
-      sampledKey = ""
+      localPalette = root.fallbackPalette
+      localSampledKey = ""
       return
     }
     if (key === sampledKey) return
     if (paletteCache[key] !== undefined) {
-      palette = paletteCache[key]
-      sampledKey = key
+      localPalette = paletteCache[key]
+      localSampledKey = key
       return
     }
     if (!sampler.available) return
@@ -125,6 +129,7 @@ Item {
   function wake() { refreshPalette() }
 
   onCoverUrlChanged: refreshPalette()
+  onPaletteSourceChanged: refreshPalette()
   onHasTrackChanged: {
     refreshPalette()
     ambientCanvas.requestPaint()
@@ -143,6 +148,7 @@ Item {
     onAvailableChanged: if (available) root.refreshPalette()
     onImageLoaded: root.refreshPalette()
     onPaint: {
+      if (root.paletteSource) return
       var key = root.hasTrack ? String(root.coverUrl || "") : ""
       if (!key || !isImageLoaded(key)) return
       var ctx = getContext("2d")
@@ -154,8 +160,8 @@ Item {
       if (Object.keys(root.paletteCache).length > 24)
         root.paletteCache = ({})
       root.paletteCache[key] = next
-      root.palette = next
-      root.sampledKey = key
+      root.localPalette = next
+      root.localSampledKey = key
     }
   }
 

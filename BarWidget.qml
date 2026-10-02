@@ -10,6 +10,7 @@ BarWidget {
   moduleName: "cucu0628.dashboard"
 
   property date displayDate: clock.date
+  readonly property var paletteSource: clockPalette.item
   readonly property string configuredFormat: vertical
     ? setting("verticalFormat", "HH\n—\nmm")
     : setting("format", "dddd HH:mm")
@@ -96,7 +97,7 @@ BarWidget {
   Loader {
     id: clockPalette
     visible: false
-    active: root.setting("clockSpectrum", true)
+    active: true
     sourceComponent: Component {
       CoverStage {
         width: 32

@@ -13,6 +13,7 @@ Panel {
 
   property var anchorItem: null
   property var hostWidget: null
+  readonly property var paletteSource: hostWidget ? hostWidget.paletteSource : null
   property date today: new Date()
   property int viewYear: today.getFullYear()
   property int viewMonth: today.getMonth()
@@ -497,6 +498,7 @@ Panel {
                 // Full-card artwork with cover-colored shading under the controls.
                 CoverStage {
                   id: coverStage
+                  paletteSource: root.paletteSource
                   anchors.fill: parent
                   anchors.topMargin: playerCard.borderTop
                   anchors.bottomMargin: playerCard.borderBottom
