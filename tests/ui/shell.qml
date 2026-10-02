@@ -87,6 +87,14 @@ ShellRoot {
     when: false
     function run(output) {
       try {
+        compare(test.widget.moduleName, "io.github.sadraalikhah.prism-dashboard")
+        test.widget.setPreference("displayWaves", false)
+        compare(fakeShell.saved.id, "io.github.sadraalikhah.prism-dashboard")
+        compare(fakeShell.saved.displayWaves, false)
+        test.widget.resetVisualSettings()
+        verify(!Object.prototype.hasOwnProperty.call(fakeShell.saved, "displayWaves"))
+        test.widget.cycleFormat()
+        compare(fakeShell.saved.id, "io.github.sadraalikhah.prism-dashboard")
         test.widget.open()
         wait(250)
         var p = test.panel()

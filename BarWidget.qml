@@ -8,7 +8,7 @@ import "Preferences.js" as Prefs
 
 BarWidget {
   id: root
-  moduleName: "cucu0628.dashboard"
+  moduleName: "io.github.sadraalikhah.prism-dashboard"
 
   property date displayDate: clock.date
   readonly property var paletteSource: clockPalette.item
@@ -94,7 +94,7 @@ BarWidget {
   }
 
   IpcHandler {
-    target: "cucu0628.dashboard"
+    target: "io.github.sadraalikhah.prism-dashboard"
     function open(): void { root.open() }
     function close(): void { root.close() }
     function toggle(): void { root.togglePanel() }

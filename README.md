@@ -32,20 +32,17 @@ Open the clock to bring your music, calendar, and local weather into one panel.
 Prism runs inside the current Omarchy Shell. It needs Quickshell, `curl`, and an
 Omarchy font with Nerd Font icons. The compiled shaders are included.
 
-From this checkout:
+Install from the public repository:
 
 ```bash
-plugin="$HOME/.config/omarchy/plugins/cucu0628.dashboard"
-mkdir -p "$plugin"
-cp -- *.qml *.js *.py manifest.json *.frag *.qsb LICENSE README.md preview.png "$plugin/"
-cp -R docs "$plugin/"
-omarchy-shell shell rescanPlugins
-omarchy plugin enable cucu0628.dashboard --section center
+omarchy plugin add https://github.com/sadraalikhah/prism-dashboard.git
+omarchy plugin enable io.github.sadraalikhah.prism-dashboard --section center
 ```
 
-This edition retains `cucu0628.dashboard` so existing placement and preferences
-continue to work. It replaces an existing installation with that ID. Back up
-your existing plugin before copying if you want to keep both versions.
+Prism has its own plugin ID, `io.github.sadraalikhah.prism-dashboard`, and leaves
+other plugins in place. If another clock is already on the bar, use the
+[migration guide](docs/setup.md#migrate-from-another-clock) to replace its entry
+and preserve your clock preferences.
 
 CAVA is optional for the audio spectrum. The Spotify heart additionally needs
 Spicetify, Python, PyGObject, and Soup 3. Playback and weather work without those
@@ -59,6 +56,16 @@ Click the clock to open Prism. Right-click it to change the format. Use the
 month arrows for the calendar and the map pin for your weather location. The
 player's source selector appears when several media sources are available.
 The gear opens settings. Escape closes the panel.
+
+## Remove
+
+```bash
+omarchy plugin remove io.github.sadraalikhah.prism-dashboard
+```
+
+If Prism replaced another clock, restore that clock entry and `centerAnchor`.
+Disable the optional Spicetify extension separately, as described in the
+[setup guide](docs/setup.md#spotify-heart).
 
 ## Built on Omarchy
 

@@ -1,10 +1,11 @@
 # Changes
 
-## Prism Dashboard 1.3.0, unreleased
+## Prism Dashboard 1.0.0, 2026-10-02
 
 This edition adds local weather, artwork-driven colors and motion, a clock
 spectrum, simple settings, and provider-aware music controls. It retains the
-existing plugin ID and clock placement.
+original authorship credits. The first public release uses the independent
+plugin ID `io.github.sadraalikhah.prism-dashboard`.
 
 ### Focused commit history
 

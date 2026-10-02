@@ -23,23 +23,32 @@ Quickshell configuration.
 After the [installation commands](../README.md#install), run:
 
 ```bash
-omarchy plugin enable cucu0628.dashboard --section center
+omarchy plugin enable io.github.sadraalikhah.prism-dashboard --section center
 ```
 
-If you are replacing the stock clock, edit only its entry in
-`~/.config/omarchy/shell.json` and use:
+## Migrate from another clock
+
+Prism installs separately from `omarchy.clock` and `cucu0628.dashboard`. To
+replace one of them, back up `~/.config/omarchy/shell.json`, then replace only
+that clock entry's `id` with `io.github.sadraalikhah.prism-dashboard`. Preserve
+its format, appearance switches, units, placement, and other fields. For example:
 
 ```json
-{"id": "cucu0628.dashboard", "format": "dddd HH:mm"}
+{"id": "io.github.sadraalikhah.prism-dashboard", "format": "dddd HH:mm"}
 ```
 
-Set the existing `centerAnchor` field to `cucu0628.dashboard`. Preserve the
-other entries in your configuration. For a stale plugin generation:
+If you already enabled Prism, remove its extra entry before replacing the old
+clock entry. Update `centerAnchor` only if it points at the old clock. The
+shared weather location remains in Omarchy's existing weather state file.
+
+For a stale plugin generation:
 
 ```bash
 omarchy-shell shell rescanPlugins
 omarchy restart shell
 ```
+
+This installation does not migrate or overwrite another plugin's preferences.
 
 ## Preferences
 
@@ -127,10 +136,10 @@ spicetify apply
 Read live diagnostics with the current shell:
 
 ```bash
-qs ipc -p /usr/share/omarchy/shell/shell.qml call cucu0628.dashboard musicStatus
-qs ipc -p /usr/share/omarchy/shell/shell.qml call cucu0628.dashboard contextStatus
-qs ipc -p /usr/share/omarchy/shell/shell.qml call cucu0628.dashboard weatherStatus
-qs ipc -p /usr/share/omarchy/shell/shell.qml call cucu0628.dashboard spectrumStatus
+qs ipc -p /usr/share/omarchy/shell/shell.qml call io.github.sadraalikhah.prism-dashboard musicStatus
+qs ipc -p /usr/share/omarchy/shell/shell.qml call io.github.sadraalikhah.prism-dashboard contextStatus
+qs ipc -p /usr/share/omarchy/shell/shell.qml call io.github.sadraalikhah.prism-dashboard weatherStatus
+qs ipc -p /usr/share/omarchy/shell/shell.qml call io.github.sadraalikhah.prism-dashboard spectrumStatus
 qs log -p /usr/share/omarchy/shell/shell.qml -t 50 --no-color
 ```
 
@@ -141,7 +150,7 @@ The same IPC target supports `open`, `close`, `toggle`, `cycleFormat`,
 ## Remove Prism
 
 ```bash
-omarchy plugin remove cucu0628.dashboard
+omarchy plugin remove io.github.sadraalikhah.prism-dashboard
 ```
 
 If it replaced the stock clock, restore `omarchy.clock` in your bar layout and
