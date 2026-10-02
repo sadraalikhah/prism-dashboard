@@ -9,7 +9,7 @@ try:
  (scratch/'imports').mkdir();(scratch/'imports/qs').symlink_to('/usr/share/omarchy/shell')
  (scratch/'bus.conf').write_text('<busconfig><type>session</type><listen>unix:tmpdir=/tmp</listen><policy context="default"><allow own="*"/><allow send_destination="*"/><allow receive_sender="*"/></policy></busconfig>')
  bus=subprocess.Popen(['dbus-daemon','--config-file='+str(scratch/'bus.conf'),'--nofork','--print-address=1'],stdout=subprocess.PIPE,text=True);children.append(bus)
- env=dict(os.environ,DBUS_SESSION_BUS_ADDRESS=bus.stdout.readline().strip(),QS_DISABLE_FILE_WATCHER='1',QML_IMPORT_PATH=str(scratch/'imports'),DASHBOARD_BAR=(repo/'BarWidget.qml').as_uri(),DASHBOARD_SPOTIFY_BRIDGE_PORT='19154',PRISM_DEMO_FIXTURES=str(root/'demo-fixtures'),DCONF_BACKEND='memory')
+ env=dict(os.environ,DBUS_SESSION_BUS_ADDRESS=bus.stdout.readline().strip(),QS_DISABLE_FILE_WATCHER='1',QML_IMPORT_PATH=str(scratch/'imports'),DASHBOARD_BAR=(repo/'src/BarWidget.qml').as_uri(),DASHBOARD_SPOTIFY_BRIDGE_PORT='19154',PRISM_DEMO_FIXTURES=str(root/'demo-fixtures'),DCONF_BACKEND='memory')
  def start(cmd,name):
   p=subprocess.Popen(cmd,env=env,stdout=(scratch/(name+'.log')).open('w'),stderr=subprocess.STDOUT);children.append(p);return p
  start(['python3',str(root/'demo-player.py')],'player');start(['python3',str(root/'demo-spotify.py')],'spotify')

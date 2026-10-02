@@ -4,7 +4,7 @@ gi.require_version('Soup','3.0')
 from gi.repository import Soup, GLib
 port=19154
 env=dict(os.environ,DASHBOARD_SPOTIFY_BRIDGE_PORT=str(port))
-p=subprocess.Popen(['python3',str(Path(__file__).resolve().parents[2]/'spotify_bridge.py')],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,bufsize=1)
+p=subprocess.Popen(['python3',str(Path(__file__).resolve().parents[2]/'integrations/spotify/spotify_bridge.py')],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,bufsize=1)
 loop=GLib.MainLoop();session=Soup.Session();sock=None;messages=[];failures=[]
 def finish(session,result):
  global sock

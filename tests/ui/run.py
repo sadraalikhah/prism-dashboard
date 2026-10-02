@@ -7,7 +7,7 @@ imports=runtime/'imports';imports.mkdir();(imports/'qs').symlink_to('/usr/share/
 try:
  (runtime/'bus.conf').write_text('<busconfig><type>session</type><listen>unix:tmpdir=/tmp</listen><policy context="default"><allow own="*"/><allow send_destination="*"/><allow receive_sender="*"/></policy></busconfig>')
  bus=subprocess.Popen(['dbus-daemon','--config-file='+str(runtime/'bus.conf'),'--nofork','--print-address=1'],stdout=subprocess.PIPE,text=True);children.append(bus)
- env=dict(os.environ,DBUS_SESSION_BUS_ADDRESS=bus.stdout.readline().strip(),QS_DISABLE_FILE_WATCHER='1',QML_IMPORT_PATH=str(imports),DASHBOARD_BAR=(root.parents[1]/'BarWidget.qml').as_uri(),DASHBOARD_SPOTIFY_BRIDGE_PORT='19154',DCONF_BACKEND='memory')
+ env=dict(os.environ,DBUS_SESSION_BUS_ADDRESS=bus.stdout.readline().strip(),QS_DISABLE_FILE_WATCHER='1',QML_IMPORT_PATH=str(imports),DASHBOARD_BAR=(root.parents[1]/'src/BarWidget.qml').as_uri(),DASHBOARD_SPOTIFY_BRIDGE_PORT='19154',DCONF_BACKEND='memory')
  for script in ['mpris_player.py','spotify_fixture.py']:
   children.append(subprocess.Popen(['python3',str(root/script)],env=env,stdout=(runtime/(script+'.log')).open('w'),stderr=subprocess.STDOUT))
  time.sleep(.3)

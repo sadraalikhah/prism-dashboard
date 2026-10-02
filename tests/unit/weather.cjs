@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const m = require('./WeatherModel.js');
+const m = require('../../src/WeatherModel.js');
 assert.equal(m.locationKey(m.location('{"name":"Only a name"}')), '');
 assert.equal(m.locationKey(m.location('{"name":"Zero","latitude":0,"longitude":0}')), '0,0');
 assert.equal(m.locationKey(m.location('{"latitude":91,"longitude":0}')), '');

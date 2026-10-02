@@ -10,8 +10,8 @@ import "MediaContext.js" as Context
 
 Panel {
   id: root
-  moduleName: "cucu0628.dashboard"
-  ipcTarget: "cucu0628.dashboard"
+  moduleName: "io.github.sadraalikhah.prism-dashboard"
+  ipcTarget: "io.github.sadraalikhah.prism-dashboard"
   manageIpc: false
 
   property var anchorItem: null

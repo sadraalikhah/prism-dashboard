@@ -2,26 +2,29 @@
 
 ## Layout
 
-| Files | Responsibility |
+| Directory | Responsibility |
 |---|---|
-| `BarWidget.qml`, `Model.js` | Clock, format cycling, shared sampler, IPC |
-| `Panel.qml` | Calendar, player selection, capabilities, dashboard composition |
-| `CoverStage.qml`, `Palette.js`, `CoverBlend.frag` | Artwork, color extraction, shared palette, diagonal glow |
-| `Aurora.frag` | Dots, drifting clusters, waves, liquid bubble and trail |
-| `ClockSpectrum.qml` | CAVA process and spectrum rendering |
-| `MediaSlider.qml`, `MediaDropdown.qml` | Seeking, volume, source picker |
-| `Preferences.js`, `DashboardSettings.qml` | Preference validation, persistence, simple settings |
-| `WeatherModel.js`, `WeatherService.qml`, `WeatherWidget.qml`, `WeatherLocation.qml` | Weather parsing, requests, location search and UI |
-| `MediaContext.js`, `SpotifyActions.qml` | Provider actions and Spotify bridge state |
-| `spotify_bridge.py`, `dashboard-spotify.js` | Local Spotify transport and confirmed add-only saves |
+| `src/` | QML widgets, calendar, color extraction, preferences, provider actions, weather parsing and requests |
+| `src/shaders/` | Dots, waves, liquid hover trail and cover glow; source and compiled Qt shaders |
+| `integrations/spotify/` | Spicetify extension and the local Python bridge |
+| `tests/unit/` | Artwork palette and weather model checks |
+| `tests/context/` | Provider logic and real loopback bridge checks |
+| `tests/ui/` | Actual QML interaction and plugin identity checks |
+| `tools/` | Reproducible gallery capture scripts and private demo fixtures |
+| `docs/` | Feature, setup, development, release and credit guides |
+| `docs/media/` | Screenshots, MP4 recordings and looping GIF previews |
+
+Omarchy loads `src/BarWidget.qml` through the root `manifest.json`. QML imports
+stay within `src/`, shaders resolve relative to the widgets, and Spotify's
+bridge resolves to `integrations/spotify/spotify_bridge.py`.
 
 ## Checks
 
 From the repository root:
 
 ```bash
-node test_Palette.js
-node test_WeatherModel.js tools/demo-fixtures/paris-forecast.json
+node tests/unit/palette.cjs
+node tests/unit/weather.cjs tools/demo-fixtures/paris-forecast.json
 node tests/context/logic.cjs
 python3 tests/context/bridge.py
 python3 tests/ui/run.py
@@ -45,8 +48,8 @@ Compiled shaders are tracked alongside their source so installs need no build.
 With the Qt 6 shader tools installed:
 
 ```bash
-/usr/lib/qt6/bin/qsb --glsl '100 es,120,150' --hlsl 50 --msl 12 -o Aurora.frag.qsb Aurora.frag
-/usr/lib/qt6/bin/qsb --glsl '100 es,120,150' --hlsl 50 --msl 12 -o CoverBlend.frag.qsb CoverBlend.frag
+/usr/lib/qt6/bin/qsb --glsl '100 es,120,150' --hlsl 50 --msl 12 -o src/shaders/Aurora.frag.qsb src/shaders/Aurora.frag
+/usr/lib/qt6/bin/qsb --glsl '100 es,120,150' --hlsl 50 --msl 12 -o src/shaders/CoverBlend.frag.qsb src/shaders/CoverBlend.frag
 ```
 
 When changing a shader, rebuild its `.qsb` and inspect the running plugin.

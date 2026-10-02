@@ -98,7 +98,7 @@ checkout, enable the included extension:
 
 ```bash
 mkdir -p "$HOME/.config/spicetify/Extensions"
-cp dashboard-spotify.js "$HOME/.config/spicetify/Extensions/"
+cp integrations/spotify/dashboard-spotify.js "$HOME/.config/spicetify/Extensions/"
 spicetify config extensions dashboard-spotify.js
 spicetify apply
 ```

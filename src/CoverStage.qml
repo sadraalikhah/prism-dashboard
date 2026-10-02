@@ -301,7 +301,7 @@ Item {
   ShaderEffect {
     anchors.fill: parent
     visible: root.hasCover
-    fragmentShader: "CoverBlend.frag.qsb"
+    fragmentShader: "shaders/CoverBlend.frag.qsb"
     property var artwork: coverTexture
     property size cardSize: Qt.size(width, height)
     property real cardRadius: root.radius
@@ -314,7 +314,7 @@ Item {
     id: aurora
     parent: root.effectHost || root
     anchors.fill: parent
-    fragmentShader: "Aurora.frag.qsb"
+    fragmentShader: "shaders/Aurora.frag.qsb"
     property real phase: Math.random() * 36
     property real waveSeed: Math.random() * 4096
     property real bassEnergy: root.bassLevel

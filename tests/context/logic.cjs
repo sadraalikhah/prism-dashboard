@@ -1,7 +1,7 @@
 const vm = require('node:vm'), fs = require('node:fs'), assert = require('node:assert/strict');
 const dir = __dirname + '/../../';
 const context = vm.createContext({});
-vm.runInContext(fs.readFileSync(dir+'MediaContext.js','utf8'),context);
+vm.runInContext(fs.readFileSync(dir+'src/MediaContext.js','utf8'),context);
 const A='spotify:track:1234567890123456789012', B='spotify:track:abcdefghijklmnopqrstuv';
 for(const url of [A,'https://open.spotify.com/track/1234567890123456789012?si=foo'])
   assert.equal(context.spotifyUri({metadata:{'xesam:url':url}}),A);
@@ -17,7 +17,7 @@ assert.equal(context.isPodcast({metadata:{'xesam:url':A.replace('track','episode
   const player={data:undefined,getHeart:()=>saved,addEventListener:()=>{}};
   const library={contains:async(uri)=>{contains.push(uri);if(deferred){const f=deferred;deferred=null;await f()}return [saved]},add:async({uris})=>{adds.push(...uris);if(!fail)saved=true}};
   const env=vm.createContext({Spicetify:{Player:player,Platform:{LibraryAPI:library}},WebSocket:Socket,window:{addEventListener:()=>{}},setTimeout:()=>1,clearTimeout:()=>{},setInterval:f=>{interval=f;return 1},clearInterval:()=>{}});
-  vm.runInContext(fs.readFileSync(dir+'dashboard-spotify.js','utf8'),env);
+  vm.runInContext(fs.readFileSync(dir+'integrations/spotify/dashboard-spotify.js','utf8'),env);
   const s=Socket.last;await s.onopen(); await new Promise(r=>setImmediate(r));
   assert.equal(s.messages.at(-1).uri,'');assert.equal(s.messages.at(-1).liked,null);
   player.data={item:{uri:A}};await s.onmessage({data:'{"action":"refresh"}'});

@@ -98,6 +98,8 @@ ShellRoot {
         test.widget.open()
         wait(250)
         var p = test.panel()
+        compare(p.moduleName, test.widget.moduleName)
+        compare(p.ipcTarget, test.widget.moduleName)
         compare(p.leftAction, "shuffle")
         var left = test.named("mediaContextLeft"), right = test.named("mediaContextRight")
         verify(left.visible && right.visible)

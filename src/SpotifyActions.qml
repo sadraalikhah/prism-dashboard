@@ -23,7 +23,7 @@ Item {
   Process {
     id: process
     running: root.active
-    command: ["python3", Qt.resolvedUrl("spotify_bridge.py").toString().replace("file://", "")]
+    command: ["python3", Qt.resolvedUrl("../integrations/spotify/spotify_bridge.py").toString().replace("file://", "")]
     stdinEnabled: true
     stdout: SplitParser {
       onRead: function(line) {

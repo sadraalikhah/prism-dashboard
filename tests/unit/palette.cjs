@@ -3,7 +3,7 @@ const fs = require("fs")
 const path = require("path")
 const vm = require("vm")
 
-const paletteCode = fs.readFileSync(path.join(__dirname, "Palette.js"), "utf8")
+const paletteCode = fs.readFileSync(path.join(__dirname, "../../src/Palette.js"), "utf8")
 const paletteApi = {}
 vm.createContext(paletteApi)
 vm.runInContext(paletteCode, paletteApi)
