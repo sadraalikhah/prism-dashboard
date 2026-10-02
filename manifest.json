@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "id": "cucu0628.dashboard",
-  "name": "Dashboard",
-  "version": "1.2.0",
-  "author": "cucu0628",
+  "name": "Prism Dashboard",
+  "version": "1.3.0",
+  "author": "Sadra Alikhah; original dashboard by cucu0628",
   "license": "MIT",
-  "description": "Clock with calendar, system, media player and weather dashboard",
+  "description": "Artwork-driven music colors, liquid animations, audio spectrum, calendar, and local weather",
   "kinds": [
     "bar-widget"
   ],
@@ -13,14 +13,14 @@
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Dashboard",
-    "description": "Clock, calendar, local weather and media dashboard",
+    "displayName": "Prism Dashboard",
+    "description": "An animated music dashboard with calendar, weather, and provider-aware playback controls",
     "category": "Time",
     "allowMultiple": false,
     "defaultSection": "center",
     "defaults": {
       "format": "dddd HH:mm",
-      "verticalFormat": "HH\n\u2014\nmm",
+      "verticalFormat": "HH\n—\nmm",
       "weatherUnit": "celsius",
       "clockSpectrum": true,
       "dynamicCoverColors": true,
