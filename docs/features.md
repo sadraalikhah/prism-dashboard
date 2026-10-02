@@ -1,7 +1,8 @@
 # A tour of Prism
 
-All captures show the real Quickshell plugin. The music examples use
-**Poison Girl by HIM** and the weather location is **Paris, France**.
+All captures show the real Quickshell plugin. The main image stays
+**Poison Girl by HIM**; the feature demos use different song palettes.
+The weather location is **Paris, France**.
 [Capture details and credits](credits.md) describe the demo data.
 
 ## Color that follows the artwork
@@ -10,10 +11,10 @@ The cover sets the player's accent, sliders, hover states, and clock spectrum.
 A shared sampler keeps them in step. A diagonal glow draws color through the
 artwork, while darker shading keeps the title and controls readable.
 
-This recording switches between cover colors and the Omarchy theme accent.
-The chosen song and cover stay the same.
+This recording moves between HIM, The Weeknd, Billie Eilish, and Tame Impala.
+The artwork, controls, and clock palette update together as the song changes.
 
-![Cover colors and theme colors](media/dynamic-colors.gif)
+![Artwork colors change with the song](media/dynamic-colors.gif)
 
 [Watch the MP4 recording](media/dynamic-colors.mp4)
 

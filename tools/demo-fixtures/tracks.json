@@ -1,0 +1,110 @@
+[
+  {
+    "key": "poison-girl",
+    "title": "Poison girl",
+    "artist": "HIM",
+    "album": "Razorblade Romance",
+    "duration": 230,
+    "spotifyId": "1wfDvLRSQVFEWC7nfE6C4L",
+    "url": "https://open.spotify.com/track/1wfDvLRSQVFEWC7nfE6C4L",
+    "artworkSource": "https://image-cdn-ak.spotifycdn.com/image/ab67616d0000b273a8cfc41719dc2c2028e0aad5",
+    "cover": "covers/poison-girl.jpg",
+    "color": "pink"
+  },
+  {
+    "key": "starboy",
+    "title": "Starboy",
+    "artist": "The Weeknd, Daft Punk",
+    "album": "Starboy",
+    "duration": 230,
+    "spotifyId": "7MXVkk9YMctZqd1Srtv4MB",
+    "url": "https://open.spotify.com/track/7MXVkk9YMctZqd1Srtv4MB",
+    "artworkSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616d0000b2734718e2b124f79258be7bc452",
+    "cover": "covers/starboy.jpg",
+    "color": "red and blue"
+  },
+  {
+    "key": "copycat",
+    "title": "COPYCAT",
+    "artist": "Billie Eilish",
+    "album": "dont smile at me",
+    "duration": 194,
+    "spotifyId": "0JFtuc0AtYSMV2lXL1A5Ki",
+    "url": "https://open.spotify.com/track/0JFtuc0AtYSMV2lXL1A5Ki",
+    "artworkSource": "https://image-cdn-ak.spotifycdn.com/image/ab67616d0000b2735fdfa28d1ec53e77d51d6e7e",
+    "cover": "covers/copycat.jpg",
+    "color": "yellow and red"
+  },
+  {
+    "key": "let-it-happen",
+    "title": "Let It Happen",
+    "artist": "Tame Impala",
+    "album": "Currents",
+    "duration": 467,
+    "spotifyId": "2X485T9Z5Ly0xyaghN73ed",
+    "url": "https://open.spotify.com/track/2X485T9Z5Ly0xyaghN73ed",
+    "artworkSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616d0000b2739e1cfc756886ac782e363d79",
+    "cover": "covers/let-it-happen.jpg",
+    "color": "violet"
+  },
+  {
+    "key": "blinding-lights",
+    "title": "Blinding Lights",
+    "artist": "The Weeknd",
+    "album": "After Hours",
+    "duration": 200,
+    "spotifyId": "0VjIjW4GlUZAMYd2vXMi3b",
+    "url": "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b",
+    "artworkSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616d0000b2738863bc11d2aa12b54f5aeb36",
+    "cover": "covers/blinding-lights.jpg",
+    "color": "warm amber and brown"
+  },
+  {
+    "key": "yellow",
+    "title": "Yellow",
+    "artist": "Coldplay",
+    "album": "Parachutes",
+    "duration": 269,
+    "spotifyId": "3AJwUDP919kvQ9QcozQPxg",
+    "url": "https://open.spotify.com/track/3AJwUDP919kvQ9QcozQPxg",
+    "artworkSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616d0000b2739164bafe9aaa168d93f4816a",
+    "cover": "covers/yellow.jpg",
+    "color": "amber"
+  },
+  {
+    "key": "feel-good-inc",
+    "title": "Feel Good Inc.",
+    "artist": "Gorillaz",
+    "album": "Demon Days",
+    "duration": 222,
+    "spotifyId": "0d28khcov6AiegSCpG5TuT",
+    "url": "https://open.spotify.com/track/0d28khcov6AiegSCpG5TuT",
+    "artworkSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616d0000b273622aefd794f6fe4d8e714358",
+    "cover": "covers/feel-good-inc.jpg",
+    "color": "green and coral"
+  },
+  {
+    "key": "cruel-summer",
+    "title": "Cruel Summer",
+    "artist": "Taylor Swift",
+    "album": "Lover",
+    "duration": 178,
+    "spotifyId": "1BxfuPKGuaTgP7aM0Bbdwr",
+    "url": "https://open.spotify.com/track/1BxfuPKGuaTgP7aM0Bbdwr",
+    "artworkSource": "https://image-cdn-ak.spotifycdn.com/image/ab67616d0000b273e787cffec20aa2a396a61647",
+    "cover": "covers/cruel-summer.jpg",
+    "color": "pastel blue and pink"
+  },
+  {
+    "key": "summertime-sadness",
+    "title": "Summertime Sadness",
+    "artist": "Lana Del Rey",
+    "album": "Born To Die",
+    "duration": 264,
+    "spotifyId": "5dUYmMxjCF7PY9CU4swHuJ",
+    "url": "https://open.spotify.com/track/5dUYmMxjCF7PY9CU4swHuJ",
+    "artworkSource": "https://image-cdn-fa.spotifycdn.com/image/ab67616d0000b2736b850da1e1301dba85b08681",
+    "cover": "covers/summertime-sadness.jpg",
+    "color": "green and blue"
+  }
+]

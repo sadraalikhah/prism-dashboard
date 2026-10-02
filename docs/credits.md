@@ -33,16 +33,36 @@ absent. It never removes saved songs.
 
 ## Screenshots and recordings
 
-The user selected [Poison Girl by HIM](https://open.spotify.com/track/1wfDvLRSQVFEWC7nfE6C4L)
-for the gallery. The Razorblade Romance artwork comes from Spotify's artwork
-CDN. Song and album artwork belong to their respective rights holders; they
-are not relicensed under the project's MIT license. No song audio is included.
+The main image stays **Poison Girl by HIM**, in the overview. Other
+examples use different songs and covers to make the palette differences clear.
+Artwork and track names come from Spotify's official oEmbed metadata and
+artwork CDN. The fixture index records each source URL.
+
+| Song | Artist | Album | Cover colors |
+|---|---|---|---|
+| [Poison Girl](https://open.spotify.com/track/1wfDvLRSQVFEWC7nfE6C4L) | HIM | Razorblade Romance | pink |
+| [Starboy](https://open.spotify.com/track/7MXVkk9YMctZqd1Srtv4MB) | The Weeknd, Daft Punk | Starboy | red and blue |
+| [COPYCAT](https://open.spotify.com/track/0JFtuc0AtYSMV2lXL1A5Ki) | Billie Eilish | dont smile at me | yellow and red |
+| [Let It Happen](https://open.spotify.com/track/2X485T9Z5Ly0xyaghN73ed) | Tame Impala | Currents | violet |
+| [Blinding Lights](https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b) | The Weeknd | After Hours | warm amber and brown |
+| [Yellow](https://open.spotify.com/track/3AJwUDP919kvQ9QcozQPxg) | Coldplay | Parachutes | amber |
+| [Feel Good Inc.](https://open.spotify.com/track/0d28khcov6AiegSCpG5TuT) | Gorillaz | Demon Days | green and coral |
+| [Cruel Summer](https://open.spotify.com/track/1BxfuPKGuaTgP7aM0Bbdwr) | Taylor Swift | Lover | pastel blue and pink |
+| [Summertime Sadness](https://open.spotify.com/track/5dUYmMxjCF7PY9CU4swHuJ) | Lana Del Rey | Born To Die | green and blue |
+
+Song and album artwork belong to their respective rights holders; they are not
+relicensed under the project's MIT license. No song audio is included.
 
 The captures record the real Prism Dashboard QML scene in Quickshell, with
 private MPRIS demo metadata. Paris is a demonstration location and does not
 identify the user's location. The weather and search displays use cached
 public API responses for Paris. Podcast and browser examples use controlled
-capabilities with the same selected song artwork.
+capabilities with the selected showcase artwork.
+
+The README embeds GitHub-hosted video attachments as inline players with
+playback controls. Canonical attachment URLs are recorded in
+`media/video-attachments.json`; downloadable MP4s and looping GIFs remain in
+`media/` for local use.
 
 The Spotify save demonstration uses a fake extension, so it changes no real
 library. The clock clip uses deterministic demo band levels in the real clock

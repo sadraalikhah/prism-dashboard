@@ -5,17 +5,21 @@ from pathlib import Path
 DBusGMainLoop(set_as_default=True)
 PLAYER='org.mpris.MediaPlayer2.Player'; PROPS='org.freedesktop.DBus.Properties'
 ROOT=Path(__file__).resolve().parent/'demo-fixtures'
+TRACKS=json.loads((ROOT/'tracks.json').read_text())
+BY_KEY={t['key']:t for t in TRACKS}
 class Player(dbus.service.Object):
  def __init__(self,name,index):
   self.bus=dbus.SessionBus(private=True);self.name=dbus.service.BusName('org.mpris.MediaPlayer2.'+name,self.bus)
-  super().__init__(self.bus,'/org/mpris/MediaPlayer2');self.index=index;self.cover='red';self.title='Poison Girl';self.length=230000000;self.spotify_kind='track'
+  super().__init__(self.bus,'/org/mpris/MediaPlayer2');self.index=index;self.track=TRACKS[0];self.cover='art';self.length=self.track['duration']*1000000;self.spotify_kind='track'
   self.props={'PlaybackStatus':'Playing' if index==1 else 'Paused','LoopStatus':'None','Rate':dbus.Double(1),'Shuffle':False,
   'Volume':dbus.Double(.6),'Position':dbus.Int64(45000000),'MinimumRate':dbus.Double(1),'MaximumRate':dbus.Double(1),
   'CanGoNext':True,'CanGoPrevious':True,'CanPlay':True,'CanPause':True,'CanSeek':True,'CanControl':True,'Metadata':self.metadata()}
  def metadata(self):
-  art='' if self.cover=='none' else (ROOT/'poison-girl.jpg').as_uri()
-  return dbus.Dictionary({'mpris:trackid':dbus.ObjectPath('/track/'+str(self.index)), 'xesam:title':self.title,'xesam:artist':dbus.Array(['HIM'],signature='s'),
-   'mpris:length':dbus.Int64(self.length),'mpris:artUrl':art,'xesam:url': 'spotify:'+self.spotify_kind+':1wfDvLRSQVFEWC7nfE6C4L' if self.index==40 else 'https://example.org/media/'+str(self.index)},signature='sv')
+  art='' if self.cover=='none' else (ROOT/self.track['cover']).as_uri()
+  return dbus.Dictionary({'mpris:trackid':dbus.ObjectPath('/track/'+self.track['spotifyId']), 'xesam:title':self.track['title'],'xesam:artist':dbus.Array(self.track['artist'].split(', '),signature='s'),'xesam:album':self.track['album'],
+   'mpris:length':dbus.Int64(self.length),'mpris:artUrl':art,'xesam:url': 'spotify:'+self.spotify_kind+':'+self.track['spotifyId'] if self.index==40 else 'https://example.org/media/'+str(self.index)},signature='sv')
+ def set_track(self,index):
+  self.track=TRACKS[index];self.length=self.track['duration']*1000000;self.change(Metadata=self.metadata(),Position=dbus.Int64(0));self.Seeked(0)
  def change(self,**values): self.props.update(values);self.PropertiesChanged(PLAYER,values,[])
  def log(self,method,*args):
   with (ROOT/'calls.jsonl').open('a') as f:f.write(json.dumps({'time':time.monotonic(),'player':str(self.name),'method':method,'args':args})+'\n')
@@ -38,23 +42,25 @@ class Player(dbus.service.Object):
  @dbus.service.method(PLAYER)
  def PlayPause(self):self.log('PlayPause');self.change(PlaybackStatus='Paused' if self.props['PlaybackStatus']=='Playing' else 'Playing')
  @dbus.service.method(PLAYER)
- def Next(self):self.log('Next');self.index+=1;self.cover='blue' if self.cover=='red' else 'red';self.change(Metadata=self.metadata());self.Seeked(0)
+ def Next(self):self.log('Next');self.set_track((TRACKS.index(self.track)+1)%len(TRACKS))
  @dbus.service.method(PLAYER)
- def Previous(self):self.log('Previous');self.index-=1;self.change(Metadata=self.metadata());self.Seeked(0)
+ def Previous(self):self.log('Previous');self.set_track((TRACKS.index(self.track)-1)%len(TRACKS))
  @dbus.service.method(PLAYER,in_signature='ox')
  def SetPosition(self,track,value):
-  assert str(track)=='/track/'+str(self.index)
+  assert str(track)=='/track/'+self.track['spotifyId']
   self.log('SetPosition',int(value));self.props['Position']=dbus.Int64(value);self.Seeked(value)
  @dbus.service.method(PLAYER,in_signature='x')
- def Seek(self,offset):self.SetPosition('/track/'+str(self.index),self.props['Position']+offset)
+ def Seek(self,offset):self.SetPosition('/track/'+self.track['spotifyId'],self.props['Position']+offset)
  @dbus.service.method('org.example.MusicTest',in_signature='s')
  def Scenario(self,scenario):
-  if scenario in ['ad','episode','track']:self.spotify_kind=scenario;self.change(Metadata=self.metadata())
+  if scenario.startswith('song:'):
+   self.track=BY_KEY[scenario[5:]];self.length=self.track['duration']*1000000;self.change(Metadata=self.metadata(),Position=dbus.Int64(45000000));self.Seeked(45000000)
+  elif scenario in ['ad','episode','track']:self.spotify_kind=scenario;self.change(Metadata=self.metadata())
   elif scenario in ['red','blue','none','broken']:self.cover=scenario;self.change(Metadata=self.metadata())
   elif scenario=='zeroLength':self.length=0;self.change(Metadata=self.metadata())
   elif scenario=='newNoLength':self.index+=1;self.length=0;self.change(Metadata=self.metadata());self.Seeked(0)
   elif scenario=='noControls':self.change(CanControl=False,CanPlay=False,CanPause=False,CanSeek=False,CanGoNext=False,CanGoPrevious=False)
-  elif scenario=='normal':self.length=230000000;self.change(Metadata=self.metadata(),CanControl=True,CanPlay=True,CanPause=True,CanSeek=True,CanGoNext=True,CanGoPrevious=True)
+  elif scenario=='normal':self.length=self.track['duration']*1000000;self.change(Metadata=self.metadata(),CanControl=True,CanPlay=True,CanPause=True,CanSeek=True,CanGoNext=True,CanGoPrevious=True)
   elif scenario=='empty':self.change(Metadata=dbus.Dictionary({},signature='sv'),PlaybackStatus='Stopped')
  @dbus.service.method('org.example.MusicTest')
  def Remove(self):self.bus.release_name('org.mpris.MediaPlayer2.music_second')

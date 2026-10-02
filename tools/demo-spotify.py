@@ -1,7 +1,17 @@
-import gi,json
+import gi,json,os
+from pathlib import Path
 gi.require_version('Soup','3.0')
 from gi.repository import GLib,Soup
 session=Soup.Session();sock=None;liked=False;uri='spotify:track:1wfDvLRSQVFEWC7nfE6C4L'
+def sync_track():
+ global uri,liked
+ path=Path(os.environ['PRISM_DEMO_SPOTIFY_TRACK'])
+ if path.exists():
+  current=json.loads(path.read_text())['uri']
+  if current!=uri:
+   uri=current;liked=False
+   if sock is not None:state()
+ return True
 def state():sock.send_text(json.dumps({'type':'state','uri':uri,'liked':liked}))
 def message(s,k,b):
  global liked
@@ -18,4 +28,4 @@ def connected(s,r):
 def connect():
  session.websocket_connect_async(Soup.Message.new('GET','http://127.0.0.1:19154/dashboard'),'https://xpui.app.spotify.com',None,GLib.PRIORITY_DEFAULT,None,connected)
  return False
-connect();GLib.MainLoop().run()
+GLib.timeout_add(100,sync_track);connect();GLib.MainLoop().run()

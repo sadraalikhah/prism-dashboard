@@ -67,11 +67,16 @@ applications out of the frames. The playback-menu screenshot uses a bounded
 desktop capture because Qt renders its popup outside the card scene; inspect
 that image before sharing it.
 
-It uses private MPRIS fixtures for Poison Girl by HIM, cached Paris weather and
-city-search responses, and deterministic clock demo bands. Preference writes
+It uses private MPRIS fixtures for the nine songs in
+`tools/demo-fixtures/tracks.json`, cached Paris weather and city-search
+responses, and deterministic clock demo bands. `--keep-hero` preserves the
+existing HIM overview; `--finish` captures the final menu, provider and clock
+examples. Preference writes
 stay in a fake bar host. The like demonstration talks to a fake extension.
 No user location, Spotify library, or real playback is modified. Recordings
-contain no audio.
+contain no audio. To refresh the inline players after recording, upload the
+MP4s as GitHub user attachments and update `docs/media/video-attachments.json`.
+Use canonical attachment URLs, which GitHub resolves to playable videos.
 
 ## Verify an installation
 
