@@ -566,8 +566,8 @@ Panel {
                   anchors.top: coverStage.top
                   height: coverStage.artTopInset + Style.space(26)
                   gradient: Gradient {
-                    GradientStop { position: 0.0; color: root.scrim(0.72) }
-                    GradientStop { position: 0.55; color: root.scrim(0.38) }
+                    GradientStop { position: 0.0; color: root.scrim(0.62) }
+                    GradientStop { position: 0.55; color: root.scrim(0.28) }
                     GradientStop { position: 1.0; color: root.scrim(0) }
                   }
                 }
@@ -579,9 +579,9 @@ Panel {
                   height: mediaBlock.height + Style.space(80)
                   gradient: Gradient {
                     GradientStop { position: 0.0; color: root.scrim(0) }
-                    GradientStop { position: 0.25; color: root.scrim(0.58) }
-                    GradientStop { position: 0.65; color: root.scrim(0.82) }
-                    GradientStop { position: 1.0; color: root.scrim(0.9) }
+                    GradientStop { position: 0.35; color: root.scrim(0.36) }
+                    GradientStop { position: 0.76; color: root.scrim(0.64) }
+                    GradientStop { position: 1.0; color: root.scrim(0.76) }
                   }
                 }
 
