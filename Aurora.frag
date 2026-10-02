@@ -33,7 +33,7 @@ float mergeBubbles(float a, float b, float softness) {
 }
 
 vec2 flowCenter(float t, float seed, float slot) {
-    float angle = seed * 0.017 + slot * 2.094;
+    float angle = seed * 0.017 + slot * 1.256637;
     return vec2(0.5 + 0.27 * sin(t * 0.075 + angle)
                     + 0.09 * sin(t * 0.119 - angle * 1.7),
                 0.48 + 0.29 * cos(t * 0.061 + angle)
@@ -56,14 +56,14 @@ void main() {
     float ribbon = 0.88 * exp(-3.2 * waveA * waveA);
     float ribbonB = 0.78 * exp(-2.8 * waveB * waveB);
 
-    vec2 dotGrid = vec2(24.0, 40.0);
+    vec2 dotGrid = vec2(28.0, 44.0);
     vec2 gridPosition = uv * dotGrid;
     float dotSeed = randomValue(floor(gridPosition));
     vec2 cell = fract(gridPosition) - 0.5;
     vec2 circularCell = cell * vec2(aspect * dotGrid.y / dotGrid.x, 1.0);
     float currentDistance = 1.0;
     float bass = clamp(bassEnergy, 0.0, 1.0);
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 5; ++i) {
         float slot = float(i);
         vec2 center = flowCenter(t, waveSeed, slot);
         vec2 previous = flowCenter(t - 1.5, waveSeed, slot);
@@ -78,7 +78,7 @@ void main() {
         vec2 shape = vec2(dot(delta, direction) / stretch,
                           dot(delta, vec2(-direction.y, direction.x)) * sqrt(stretch));
         float angle = atan(shape.y, shape.x);
-        float radius = 0.078 + slot * 0.012 + bass * 0.012;
+        float radius = 0.110 + mod(slot, 3.0) * 0.012 + bass * 0.012;
         radius += 0.006 * sin(angle * 3.0 + t * 0.27 + slot);
         float body = length(shape) - radius;
         float trail = length((uv - previous) * vec2(aspect, 1.0)) - radius * 0.58;
@@ -102,9 +102,9 @@ void main() {
     float tailDistance = length((uv - tailPosition) * vec2(aspect, 1.0)) - (0.028 + trailSize * 0.6);
     float liquidDistance = mergeBubbles(mergeBubbles(bubbleDistance, trailDistance, 0.045), tailDistance, 0.035);
     float hoverAura = (1.0 - smoothstep(-0.012, 0.018, liquidDistance)) * hoverStrength;
-    float dotVisibility = max(groupEnergy * (0.52 + bass * 0.12), hoverAura * 0.72);
-    dotVisibility *= smoothstep(0.28, 0.50, dotSeed);
-    float dotSize = mix(0.038, 0.060, dotSeed);
+    float dotVisibility = max(0.10 + groupEnergy * (0.65 + bass * 0.12), hoverAura * 0.82);
+    dotVisibility *= smoothstep(0.12, 0.28, dotSeed);
+    float dotSize = mix(0.050, 0.077, dotSeed);
     float dotDistance = length(circularCell);
     float core = 1.0 - smoothstep(dotSize * 0.5, dotSize, dotDistance);
     float halo = 1.0 - smoothstep(dotSize, dotSize + 0.035, dotDistance);
