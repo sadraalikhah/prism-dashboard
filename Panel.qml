@@ -18,6 +18,37 @@ Panel {
   property int viewMonth: today.getMonth()
   property real sampledPosition: 0
   property string selectedPlayerKey: ""
+  property bool editingWeatherLocation: false
+
+  function editWeatherLocation() {
+    editingWeatherLocation = true
+    weatherLocation.start()
+  }
+
+  function closeWeatherLocation() {
+    editingWeatherLocation = false
+    weather.cancelSearch()
+    keyCatcher.forceActiveFocus()
+  }
+
+  function refreshWeather() { weather.refresh(true) }
+
+  function weatherStatus() {
+    return JSON.stringify({ location: weather.location, loading: weather.loading,
+      error: weather.error, receivedAt: weather.receivedAt, stale: weather.stale,
+      temperature: weather.report ? weather.report.current.temperature_2m : null,
+      timezone: weather.report ? weather.report.timezone : "",
+      editing: editingWeatherLocation, searching: weather.searching,
+      matches: weather.suggestions.length })
+  }
+
+  WeatherService {
+    id: weather
+    objectName: "dashboardWeatherService"
+    active: root.opened
+    unit: root.setting("weatherUnit", "celsius") === "fahrenheit" ? "fahrenheit" : "celsius"
+    onLocationSaved: root.closeWeatherLocation()
+  }
 
   readonly property var barIdentity: hostWidget || root
   readonly property color foreground: bar ? bar.foreground : Color.foreground
@@ -147,7 +178,7 @@ Panel {
     coverStage.wake()
   }
 
-  function close() { controller.hide() }
+  function close() { root.closeWeatherLocation(); controller.hide() }
   function toggle() { opened ? close() : open() }
 
   function switchPanel(direction) {
@@ -288,6 +319,7 @@ Panel {
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
+      blocked: root.editingWeatherLocation
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
 
@@ -308,10 +340,13 @@ Panel {
               spacing: Style.space(14)
 
               Card {
+                id: calendarCard
                 width: Style.space(380)
                 height: parent.height
 
                 Column {
+                  id: calendarContent
+                  visible: !root.editingWeatherLocation
                   anchors.fill: parent
                   anchors.margins: parent.contentLeftInset
                   spacing: Style.space(7)
@@ -357,6 +392,7 @@ Panel {
                   }
 
                   Grid {
+                    id: monthGrid
                     width: parent.width
                     columns: 7
                     rowSpacing: Style.space(3)
@@ -395,6 +431,26 @@ Panel {
                       }
                     }
                   }
+
+                  WeatherWidget {
+                    width: parent.width
+                    height: Math.max(0, parent.height - y)
+                    service: weather
+                    foreground: root.foreground
+                    fontFamily: root.fontFamily
+                    onEditLocation: root.editWeatherLocation()
+                  }
+                }
+
+                WeatherLocation {
+                  id: weatherLocation
+                  anchors.fill: parent
+                  anchors.margins: calendarCard.contentLeftInset
+                  visible: root.editingWeatherLocation
+                  service: weather
+                  foreground: root.foreground
+                  fontFamily: root.fontFamily
+                  onDismissed: root.closeWeatherLocation()
                 }
               }
 

@@ -14,13 +14,14 @@
   },
   "barWidget": {
     "displayName": "Dashboard",
-    "description": "Clock with a two-view dashboard",
+    "description": "Clock, calendar, local weather and media dashboard",
     "category": "Time",
     "allowMultiple": false,
     "defaultSection": "center",
     "defaults": {
       "format": "dddd HH:mm",
-      "verticalFormat": "HH\n—\nmm"
+      "verticalFormat": "HH\n\u2014\nmm",
+      "weatherUnit": "celsius"
     },
     "schema": [
       {
@@ -32,6 +33,16 @@
         "key": "verticalFormat",
         "type": "string",
         "label": "Vertical clock format"
+      },
+      {
+        "key": "weatherUnit",
+        "type": "enum",
+        "label": "Weather temperature unit",
+        "options": [
+          "celsius",
+          "fahrenheit"
+        ],
+        "defaultValue": "celsius"
       }
     ]
   }
