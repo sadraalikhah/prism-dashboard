@@ -2,4 +2,5 @@
 *.bak.*
 __pycache__/
 *.pyc
+integrations/spotify/.python/
 tools/demo-fixtures/calls.jsonl

@@ -11,7 +11,7 @@ Optional integrations:
 | Feature | Requirement |
 |---|---|
 | Audio spectrum and bass response | CAVA with PipeWire input support |
-| Spotify Liked Songs | Desktop Spotify with Spicetify applied, Python 3, PyGObject, Soup 3 |
+| Spotify Liked Songs | Desktop Spotify with Spicetify applied, Python 3, PyGObject, Soup 3, Python cryptography |
 | Browser page action | A browser MPRIS source exposing an HTTP or HTTPS media URL |
 | Podcast skips | An episode URI or podcast content type, duration, and MPRIS seeking |
 
@@ -93,13 +93,25 @@ and daily ranges use the chosen location's timezone.
 
 ## Spotify heart
 
-First install Spicetify and apply it to desktop Spotify. From the Prism
-checkout, enable the included extension:
+First install Spicetify and apply it to desktop Spotify. Install the bridge's
+cryptography dependency:
 
 ```bash
-mkdir -p "$HOME/.config/spicetify/Extensions"
-cp integrations/spotify/dashboard-spotify.js "$HOME/.config/spicetify/Extensions/"
-spicetify config extensions dashboard-spotify.js
+omarchy pkg add python-cryptography
+```
+
+If you cannot install system packages, use Python pip to install the dependency
+beside the bridge instead:
+
+```bash
+python3 -m pip install --target integrations/spotify/.python -r integrations/spotify/requirements.txt
+```
+
+From the installed Prism checkout, pair the extension and enable it:
+
+```bash
+python3 integrations/spotify/pair-spotify.py
+spicetify config extensions dashboard-spotify.js- extensions dashboard-spotify-auth.js
 spicetify apply
 ```
 
@@ -108,8 +120,19 @@ Restart Spotify if the extension has not loaded. The
 
 The dashboard starts `spotify_bridge.py` while Spotify is selected. It listens
 on `127.0.0.1:9154`, accepts Spotify's app origin, and receives widget commands
-through private process input. Spotify keeps its own login and credentials.
+through private process input. Pairing creates a private bridge key under
+`~/.config/prism-dashboard/spotify/bridge-key.pem` with directory mode 0700
+and file mode 0600. The installed extension contains its public key only.
+Spotify verifies the bridge before sending track information or accepting
+commands. Messages are encrypted and replayed messages are rejected.
+Spotify keeps its own login and credentials.
 No API key, OAuth developer application, or access token is entered into Prism.
+The pairing script reuses your bridge key. Do not copy the unpaired source
+extension directly: it deliberately disables the heart. To rotate the identity,
+remove the private key, rerun pairing, then apply Spicetify again. Custom
+Spicetify paths can use `pair-spotify.py --output /path/to/Extensions/dashboard-spotify-auth.js`.
+See [Spotify bridge authentication](spotify-security.md) for the protocol and
+its limits.
 
 The heart appears only when Spotify reports a saved-song state for the same
 track shown by MPRIS. Ads and unsupported content hide it. Saving errors appear
@@ -118,7 +141,7 @@ as desktop notifications. No action removes a song from Liked Songs.
 To disable the extension:
 
 ```bash
-spicetify config extensions dashboard-spotify.js-
+spicetify config extensions dashboard-spotify-auth.js-
 spicetify apply
 ```
 
@@ -130,7 +153,7 @@ spicetify apply
 | No player | `busctl --user list --no-pager` should show an `org.mpris.MediaPlayer2.*` service |
 | Seek or volume disabled | The selected source must report that capability |
 | No clock bars | Check CAVA is installed with PipeWire support and the selected player is playing |
-| Spotify heart missing | Check the extension is enabled, dependencies exist, port 9154 is free, and a regular Spotify track is selected |
+| Spotify heart missing | Check pairing, the cryptography dependency, extension activation, private key permissions, port 9154, and a regular Spotify track |
 | Weather missing | Choose a result with coordinates and check the network connection |
 
 Read live diagnostics with the current shell:

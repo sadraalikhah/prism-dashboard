@@ -26,18 +26,25 @@ From the repository root:
 node tests/unit/palette.cjs
 node tests/unit/weather.cjs tools/demo-fixtures/paris-forecast.json
 node tests/context/logic.cjs
+node tests/context/spoofing.cjs
+python3 tests/context/auth.py
 python3 tests/context/bridge.py
 python3 tests/ui/run.py
 ```
 
 The Node checks exercise parsing, provider matching, saved-song confirmation,
 already-liked no-ops, advertisement handling, and track-change races. The
-loopback test checks the real Soup WebSocket bridge, origin rejection,
-malformed messages, URI checks, and disconnect handling.
+security checks reproduce a fake server occupying the bridge port and verify
+that it receives no track information or library actions. Independent Node
+crypto exercises the browser WebCrypto handshake and message encryption.
+The loopback test checks the real Soup WebSocket bridge, authentication,
+plaintext rejection, encrypted actions, replay rejection, origin checks,
+malformed messages, and disconnect handling. These tests need Python cryptography.
 
 The UI test needs a running Wayland desktop, `qs`, QtTest, `dbus-daemon`,
 `busctl`, Python D-Bus bindings, PyGObject, and Soup 3. It starts private MPRIS
-players and a fake Spotify extension. It tests side-button spacing, menus,
+players and a fake Spotify extension. The fixtures use temporary private
+identities and authenticated encrypted sessions. It tests side-button spacing, menus,
 repeat cycling, shuffle, browser links, confirmed heart state, ads, podcast
 seeking, and disabled capabilities. It does not operate real Spotify or alter
 its library.

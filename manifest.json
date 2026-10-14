@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.sadraalikhah.prism-dashboard",
   "name": "Prism Dashboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Sadra Alikhah; original dashboard by cucu0628",
   "license": "MIT",
   "description": "Artwork-driven music colors, liquid animations, audio spectrum, calendar, and local weather",

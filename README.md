@@ -179,7 +179,8 @@ other plugins in place. If another clock is already on the bar, use the
 and preserve your clock preferences.
 
 CAVA is optional for the audio spectrum. The Spotify heart additionally needs
-Spicetify, Python, PyGObject, and Soup 3. Playback and weather work without those
+Spicetify, Python, PyGObject, Soup 3, Python cryptography, and one-time bridge
+pairing. Playback and weather work without those
 optional integrations.
 
 [Setup, Spotify installation, preferences, and troubleshooting](docs/setup.md)
